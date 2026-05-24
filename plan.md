@@ -57,7 +57,16 @@ Pinnacle (abs mode) → input_pinnacle.c (state machine)
   → zip_xy_transform (X invert)
 ```
 
-### Layers: BASE=0, NAV=1, FN=2, NUM=3, PAD=4, PAN=5
+### Layers
+| Index | Name | Activation | Physical Key (42-key) |
+|-------|------|------------|-----------------------|
+| 0 | BASE | Default | - |
+| 1 | NAV | `&mo 1` | Left Thumb (Middle) |
+| 2 | FN | `&mo 2` | Left Thumb (Outer) |
+| 3 | NUM | `&mo 3` | Right Thumb (Outer) |
+| 4 | PAD | `BTN_TOUCH` | Touchpad (automatic) |
+| 5 | PAN | `&mo 5` | Held from Pad layer |
+| 6 | MEDIA | Conditional | Held: NAV + NUM |
 
 ### Key Files
 | File | Role |
@@ -81,7 +90,7 @@ Pinnacle (abs mode) → input_pinnacle.c (state machine)
 
 For exact key assignments, see the source files above. High-level structure:
 
-- **Layers** — defined in `config/toucan.keymap`. Six layers: BASE, NAV, FN, NUM, PAD, PAN.
+- **Layers** — defined in `config/toucan.keymap`. See Architecture for indices.
 - **Homerow mods** — timeless HRMs on the home row (GUI–ALT–SHIFT–CTRL, pinky to index, symmetric). Uses `MAKE_HRM` / `ZMK_HOLD_TAP` from zmk-helpers.
 - **Combos** — two-key horizontal and vertical combos in `config/combos.dtsi`. Produce symbols, navigation shortcuts, and namespace-combo triggers.
 - **Leader sequences** — three namespaces triggered by combo macros (`greek_ns`, `german_ns`, `sys_ns`). `&leader` is never invoked bare. See `config/leader.dtsi` and `config/leader_greek.dtsi` for sequences.
@@ -104,9 +113,11 @@ For exact key assignments, see the source files above. High-level structure:
 
 All params live in `pinnacle_data.gesture_params` (RAM). DTS defaults are copied in at init and saved to Zephyr NVS settings on first boot; subsequent boots load from settings.
 
-**RPC commands** (right half only via `debug_rpc.c`):
-- `get` — read all params (single line: `OK get key=val ...`)
-- `set <param> <value>` — update param in RAM and persist to NVS
+- **RPC commands** (right half only via `debug_rpc.c`, except `layers`):
+  - `get` — read all params (single line: `OK get key=val ...`)
+  - `set <param> <value>` — update param in RAM and persist to NVS
+  - `layers` — query active layer bitmask (left/central only)
+
 
 **Live tuning**: run `scripts/touchpad_params_live.py` — watches `toucan_right.overlay`, sends `set` RPC on save.
 

@@ -26,6 +26,7 @@
 #include <zmk/split/peripheral.h>
 
 #include <toucan/debug_quarantine.h>
+#include <zmk/keymap.h>
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
@@ -613,6 +614,17 @@ static void process_quarantine_command(char *args) {
     uart_write_str("ERR usage: quarantine <on|off|status>");
 }
 
+static void process_layers_command(void) {
+#if !defined(CONFIG_ZMK_SPLIT) || defined(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
+    zmk_keymap_layers_state_t state = zmk_keymap_layer_state();
+    char buf[32];
+    snprintf(buf, sizeof(buf), "OK layers=0x%08x", (unsigned int)state);
+    uart_write_str(buf);
+#else
+    uart_write_str("ERR layers only available on central half");
+#endif
+}
+
 static void process_command(const struct toucan_debug_rpc_cmd *cmd) {
     LOG_DBG("Debug RPC command: %s", cmd->text);
 
@@ -641,7 +653,7 @@ static void process_command(const struct toucan_debug_rpc_cmd *cmd) {
 
     if (strcmp(verb, "help") == 0) {
         uart_write_str(
-            "OK commands: ping identity reset bootloader quarantine key tap touch abs move"
+            "OK commands: ping identity reset bootloader quarantine layers key tap touch abs move"
             " get set help");
         return;
     }
@@ -655,6 +667,11 @@ static void process_command(const struct toucan_debug_rpc_cmd *cmd) {
     if (strcmp(verb, "bootloader") == 0) {
         LOG_WRN("UF2 bootloader requested over USB debug RPC");
         bootloader_after_reply();
+        return;
+    }
+
+    if (strcmp(verb, "layers") == 0) {
+        process_layers_command();
         return;
     }
 
