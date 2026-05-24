@@ -63,18 +63,38 @@
         status = "okay";
         dr-gpios = <&gpio0 2 (GPIO_ACTIVE_HIGH)>;
         sensitivity = "2x";
-        x-invert;
+        absolute-mode;
+        y-invert;
 
-        // Optional: turning this on enables very aggressive power saving, after 5 seconds with no touches
-        // the trackpad will go to sleep.  It wakes up on touch, but there is a ~300ms delay.  Most users will find
-        // the standard behavior of 'put to sleep when zmk enters idle state (30 seconds without a keypress) feels better.
-	    //sleep;
+        // Optional: aggressive power saving (5s sleep, ~300ms wake latency)
+        //sleep;
+
+        // ── Gesture timing ───────────────────────────────────────────────────
+        tap-timeout-ms = <120>;           // finger-down before TAP_PENDING → MOVING
+        drag-window-timeout-ms = <300>;   // window for re-touch after tap to start drag
+        drag-jump-timeout-ms = <500>;     // window to reposition finger across pad during drag
+        pad-off-timeout-ms = <200>;       // delay before PAD layer turns off after lift
+
+        // ── Gesture zones ────────────────────────────────────────────────────
+        scroll-rim-percent = <67>;              // outer scroll ring, % of half-pad-width
+        drag-jump-rim-percent = <30>;           // rim edge for drag-jump detection, % of half-pad-width
+        dead-radius-percent = <20>;             // inner dead-zone, % of half-pad-width
+        rclick-x-min-percent = <20>;            // right-click zone: x ≤ this % of pad width
+        scroll-exclusion-zone-percent = <20>;   // centred y-band that blocks scroll initiation
+
+        // ── Force / sensitivity ──────────────────────────────────────────────
+        force-drag-z-threshold = <50>;          // min z for force-drag: TAP_PENDING/MOVING→DRAGGING
+        double-click-drag-z-threshold = <20>;   // min z for tap-then-retouch: DRAG_WINDOW→DRAGGING
+
+        // ── Scroll ───────────────────────────────────────────────────────────
+        wheel-clicks = <18>;   // scroll clicks per full finger revolution
+
+        // ── Tap behaviour ────────────────────────────────────────────────────
+        tap-snap;   // uncomment to discard cursor delta accumulated during TAP_PENDING
     };
 };
 
 &glidepoint_split {
     device = <&glidepoint>;
-
-    // Optional
-    // input-processors = <&zip_xy_transform (INPUT_TRANSFORM_XY_SWAP | INPUT_TRANSFORM_X_INVERT | INPUT_TRANSFORM_Y_INVERT)>;
 };
+

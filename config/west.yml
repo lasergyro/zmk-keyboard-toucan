@@ -4,6 +4,8 @@ manifest:
   remotes:
     - name: zmkfirmware
       url-base: https://github.com/zmkfirmware
+    - name: urob
+      url-base: https://github.com/urob
     - name: petejohanson
       url-base: https://github.com/petejohanson/
     - name: caksoylar
@@ -14,9 +16,18 @@ manifest:
     - name: zmk
       remote: zmkfirmware
       import: app/west.yml
-    - name: cirque-input-module
-      remote: geeksville
-      revision: toucan
+    - name: zmk-helpers
+      remote: urob
+      revision: v0.3
+      path: modules/zmk/helpers
+    - name: zmk-leader-key
+      remote: urob
+      revision: v0.3
+      path: modules/zmk/leader-key
+    - name: zmk-unicode
+      remote: urob
+      revision: v0.3
+      path: modules/zmk/unicode
     - name: zmk-rgbled-widget
       remote: caksoylar
       revision: v0.3

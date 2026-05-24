@@ -1,0 +1,8 @@
+# Copyright (c) 2026
+# SPDX-License-Identifier: MIT
+
+description: Toucan PAD mouse key press behavior
+
+compatible: "zmk,behavior-toucan-pad-mouse-key-press"
+
+include: one_param.yaml

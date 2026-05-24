@@ -1,0 +1,8 @@
+# Copyright (c) 2026
+# SPDX-License-Identifier: MIT
+
+description: Toucan OS-aware clipboard behavior (cut/copy/paste)
+
+compatible: "zmk,behavior-toucan-clipboard"
+
+include: one_param.yaml

@@ -1,0 +1,244 @@
+toucan:
+  # Layer annotation styles — single source of truth for each layer's
+  # annotation slot, fill color, and activator key color.
+  # generate-keymaps.rb uses these to place overlay annotations and to emit
+  # CSS for text.{field}, use.{field}, and text.{name}-activator.
+  #
+  #   field: key-position slot for annotations (tr, tl, bl, br, left, right)
+  #   color: fill color for annotation text/glyphs and activator keys
+  annotation_layers:
+    Nav:
+      field: tr
+      color: "#e9ab2e"
+    Fn:
+      field: tl
+      color: "#83a598"
+    Num:
+      field: bl
+      color: "#d65d0e"
+
+  # Leader namespace styles — single source of truth for each namespace's
+  # annotation position, fill color, optional override CSS class, and combo
+  # indicator class.  generate-keymaps.rb reads these to build LEADER_ANNOTATIONS
+  # and to emit the corresponding CSS into the draw config.
+  #
+  #   prefix:      leader prefix key (resolved define name or literal key).
+  #                Use the define name (e.g. TOUCAN_GREEK_LEADER_PREFIX) so the
+  #                Ruby script can resolve it at runtime.  Omit (or set to ~)
+  #                for single-key sequences (no prefix key in the sequence).
+  #   field:       key-position slot for annotations (left, right, tl, tr, bl, br)
+  #   color:       fill color for annotation text/glyphs and combo indicators
+  #   extra_class: optional CSS class added to annotation elements when the
+  #                desired color differs from the slot's default (e.g. right is
+  #                normally pink; greek overrides it to pastel-red)
+  #   combo_type:  CSS class set on the combo indicator for this namespace
+  leader_namespaces:
+    greek:
+      prefix: TOUCAN_GREEK_LEADER_PREFIX
+      field: right
+      color: "#f65869"
+      extra_class: greek-anno
+      combo_type: greek-combo
+    german:
+      prefix: E
+      field: br
+      color: "#5e9262"
+      combo_type: german-combo
+    sys:
+      prefix: N
+      field: left
+      color: "#458588"
+      combo_type: sys-combo
+      fallback_to_binding: true
+    combo:
+      field: right
+      color: "#ff70b8"
+
+parse_config:
+  zmk_additional_includes:
+    - "include"
+    - "dts"
+    - ".zmk-workspace/modules/zmk/helpers/include"
+    - ".zmk-workspace/modules/zmk/unicode/dts"
+    - ".zmk-workspace/modules/zmk/unicode/include"
+
+  raw_binding_map:
+    "&leader": Leader
+    "&mo TAB": Tab
+    "&studio_unlock": "$$mdi:brush$$"
+    "&bt BT_CLR": BT Clear
+    "&bt BT_SEL 0": BT 1
+    "&bt BT_SEL 1": BT 2
+    "&bt BT_SEL 2": BT 3
+    "&bt BT_SEL 3": BT 4
+    "&bt BT_SEL 4": BT 5
+    "&bootloader": "$$mdi:flash$$"
+    "&sys_reset": "$$mdi:restart$$"
+    "&greek_ns": "α"
+    "&german_ns": "ä"
+    "&sys_ns": "$$mdi:cog$$"
+    "&lpar_lt": { "t": "(", "right": "<" }
+    "&rpar_gt": { "t": ")", "right": ">" }
+    "&kp LBKT": { "t": "[", "right": "{" }
+    "&kp RBKT": { "t": "]", "right": "}" }
+    "&kp LS(LA(TAB))": "$$mdi:window-maximize$$"
+    "&clipboard 0": "$$mdi:content-cut$$"
+    "&clipboard 1": "$$mdi:content-copy$$"
+    "&clipboard 2": "$$mdi:content-paste$$"
+    "&kp K_APP": "{{class:sym}}⎄"
+    "&mkp LCLK": Left Click
+    "&mkp RCLK": Right Click
+    "&mkp MCLK": Middle Click
+    "&mkp MB4": Back Click
+    "&mkp MB5": Forward Click
+    "&mmv MOVE_UP": Mouse ↑
+    "&mmv MOVE_DOWN": Mouse ↓
+    "&mmv MOVE_LEFT": Mouse ←
+    "&mmv MOVE_RIGHT": Mouse →
+    "&msc SCRL_UP": Scroll ↑
+    "&msc SCRL_DOWN": Scroll ↓
+    "&msc SCRL_LEFT": Scroll ←
+    "&msc SCRL_RIGHT": Scroll →
+
+  trans_legend: { "t": "", "type": "trans" }
+
+  zmk_keycode_map:
+    # Use Apple's keycap-style modifier icons — in particular their shift
+    # glyph is the wider/shorter arrow that matches the hardware.
+    LALT: "$$mdi:apple-keyboard-option$$"
+    RALT: "$$mdi:apple-keyboard-option$$"
+    LCTRL: "$$mdi:apple-keyboard-control$$"
+    RCTRL: "$$mdi:apple-keyboard-control$$"
+    LGUI: "$$mdi:apple-keyboard-command$$"
+    RGUI: "$$mdi:apple-keyboard-command$$"
+    LSHFT: "$$mdi:apple-keyboard-shift$$"
+    RSHFT: "$$mdi:apple-keyboard-shift$$"
+    MCLK: MidClk
+    STAR: "*"
+
+    BSPC: "$$mdi:backspace-outline$$"
+    DEL: "$$mdi:trash-can$$"
+    ESC: "{{class:sym}}⎋"
+    RET: "$$mdi:keyboard-return$$"
+    SPACE: "$$mdi:keyboard-space$$"
+    TAB: "$$mdi:keyboard-tab$$"
+
+    HOME: Home
+    END: End
+    PG_UP: PgUp
+    PG_DN: PgDn
+    INS: Ins
+
+    UP: ↑
+    DOWN: ↓
+    LEFT: ←
+    RIGHT: →
+
+    C_MUTE: "$$mdi:volume-off$$"
+    C_VOL_UP: "$$mdi:volume-high$$"
+    C_VOL_DN: "$$mdi:volume-medium$$"
+    C_BRI_DN: "$$mdi:brightness-5$$"
+    C_BRI_UP: "$$mdi:brightness-7$$"
+    C_PREV: "$$mdi:skip-previous$$"
+    C_PP: "$$mdi:play-pause$$"
+    C_NEXT: "$$mdi:skip-next$$"
+    C_AC_DESKTOP_SHOW_ALL_WINDOWS: "$$mdi:view-grid$$"
+    C_AC_SEARCH: "$$mdi:magnify$$"
+    C_VOICE_COMMAND: "$$mdi:microphone$$"
+
+    AMPS: "&"
+    AT: "@"
+    BSLH: \
+    CARET: ^
+    COMMA: ","
+    DLLR: $
+    DOT: .
+    EQUAL: "="
+    EXCL: "!"
+    FSLH: /
+    GRAVE: "`"
+    HASH: "#"
+    KP_MULTIPLY: "*"
+    LBKT: "["
+    LBRC: "{"
+    LPAR: (
+    MINUS: "-"
+    PIPE: "|"
+    PLUS: +
+    PRCNT: "%"
+    RBKT: "]"
+    RBRC: "}"
+    RPAR: )
+    SEMI: ;
+    SQT: "'"
+    TILDE: "~"
+    UNDER: _
+
+  zmk_combos:
+    combo_lt_c:  { hidden: true }
+    combo_gt_c:  { hidden: true }
+    combo_lbrc:  { hidden: true }
+    combo_rbrc:  { hidden: true }
+    # Push the "cut" combo indicator further below copy/paste
+    # (cut skips C, copy is X+C, paste is C+V — all on the bottom row)
+    combo_cut:   { align: "bottom", offset: 0.6 }
+    # Tag the leader-namespace combos so they can be styled by CSS.
+    combo_greek_combo:  { type: "greek-combo" }
+    combo_german_combo: { type: "german-combo" }
+    combo_sys_combo:    { type: "sys-combo" }
+
+draw_config:
+  append_colon_to_layer_header: false
+  dark_mode: auto
+  small_pad: 5
+  # Make annotation glyphs a touch bigger so the bluetooth icon, linux penguin,
+  # apple logo etc. are as legible as the adjacent 11px text labels.
+  glyph_shifted_size: 12
+  # Bump tap/hold glyphs — the unicode symbols (⎋ ⏎ ⇥ ⌫ ␣ ✂ ⎘ ⎙) rendered at
+  # font-default size were hard to read at 52px keys. Swapped to MDI icons;
+  # sizes chosen so the glyph fills the key without hitting corner labels.
+  glyph_tap_size: 22
+  glyph_hold_size: 16
+  svg_extra_style: |
+    svg.keymap {
+        fill: #eadbb0;
+        background: #a89984;
+    }
+    rect.key, rect.combo, rect.combo-separate {
+        fill: #282828;
+        stroke: #020101;
+        stroke-width: 2;
+    }
+    rect.trans {
+        fill: #5e6054;
+    }
+    rect.ghost, rect.combo.ghost {
+        fill: #686156;
+        stroke: none;
+        stroke-dasharray: none;
+    }
+    text.label, text.footer {
+        fill: #282828;
+        stroke: none;
+    }
+    # text.trans {
+    #     fill: #a89984;
+    # }
+    /* Main key glyphs (tap/hold). MDI paths use fill="currentColor" which
+       resolves to black — invisible on dark keys — so we set an explicit
+       light fill matching the surrounding text labels. */
+    use.tap, use.hold {
+        fill: #eadbb0;
+    }
+    text.hold {
+        font-size: 11px;
+        font-weight: 900;
+    }
+    text.sym {
+        font-size: 24px;
+    }
+    /* Layer annotation slot (text.tr/tl/bl, use.tr/tl/bl) and activator-key
+       CSS is generated by generate-keymaps.rb from toucan.annotation_layers.
+       Leader-namespace annotation and combo CSS is generated from
+       toucan.leader_namespaces.  Both are appended after this block. */
+  footer_text: "zmk-keyboard-toucan"

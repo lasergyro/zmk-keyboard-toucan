@@ -1,0 +1,34 @@
+/*
+ * Toucan-specific text output behaviors.
+ */
+
+/ {
+    behaviors {
+#if ZMK_BEHAVIOR_OMIT(TOUCAN_HOSTMODE)
+        /omit-if-no-ref/
+#endif
+        hostmode: toucan_hostmode {
+            compatible = "zmk,behavior-toucan-output-mode";
+            #binding-cells = <1>;
+            display-name = "Toucan Host Mode";
+        };
+
+#if ZMK_BEHAVIOR_OMIT(TOUCAN_TXTSYM)
+        /omit-if-no-ref/
+#endif
+        txtsym: toucan_txtsym {
+            compatible = "zmk,behavior-toucan-text-symbol";
+            #binding-cells = <1>;
+            display-name = "Toucan Text Symbol";
+        };
+
+#if ZMK_BEHAVIOR_OMIT(TOUCAN_CLIPBOARD)
+        /omit-if-no-ref/
+#endif
+        clipboard: toucan_clipboard {
+            compatible = "zmk,behavior-toucan-clipboard";
+            #binding-cells = <1>;
+            display-name = "Toucan Clipboard";
+        };
+    };
+};

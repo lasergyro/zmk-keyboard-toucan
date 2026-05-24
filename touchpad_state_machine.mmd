@@ -1,0 +1,197 @@
+---
+title: Toucan Touchpad Gesture State Machine
+---
+stateDiagram-v2
+    direction LR
+
+    [*] --> INACTIVE
+
+    %% ── Transitions from INACTIVE ──────────────────────────────────────────────
+
+    INACTIVE --> TAP_PENDING   : contact [not rim or right half]
+    INACTIVE --> SCROLL_ACTIVE : contact [rim AND left half]
+
+    %% ── Transitions from TAP_PENDING ───────────────────────────────────────────
+
+    TAP_PENDING --> MOVING      : tap_timeout fires [contact]
+    TAP_PENDING --> DRAG_WINDOW : tap_timeout fires [lift]
+    TAP_PENDING --> DRAGGING    : contact [z ≥ FORCE_DRAG_Z_THRESHOLD] (hard press)
+
+    %% ── Transitions from MOVING ────────────────────────────────────────────────
+
+    MOVING --> INACTIVE  : lift
+    MOVING --> DRAGGING  : contact [z ≥ FORCE_DRAG_Z_THRESHOLD] (hard press, always left)
+
+    %% ── Transitions from DRAG_WINDOW ───────────────────────────────────────────
+
+    DRAG_WINDOW --> DRAGGING    : contact [z ≥ DOUBLE_CLICK_DRAG_Z_THRESHOLD]
+    DRAG_WINDOW --> TAP_PENDING : contact [z < DOUBLE_CLICK_DRAG_Z_THRESHOLD]
+    DRAG_WINDOW --> INACTIVE    : drag_window_timeout fires
+
+    %% ── Transitions from DRAGGING ──────────────────────────────────────────────
+
+    DRAGGING --> DRAG_JUMP : lift [at drag-jump rim]
+    DRAGGING --> INACTIVE  : lift [not at drag-jump rim]
+
+    %% ── Transitions from DRAG_JUMP ─────────────────────────────────────────────
+
+    DRAG_JUMP --> DRAGGING : contact
+    DRAG_JUMP --> INACTIVE : drag_jump_timeout fires
+
+    %% ── Transitions from SCROLL_ACTIVE ─────────────────────────────────────────
+
+    SCROLL_ACTIVE --> SCROLL_DEAD : contact [in dead zone]
+    SCROLL_ACTIVE --> INACTIVE    : lift
+
+    %% ── Transitions from SCROLL_DEAD ───────────────────────────────────────────
+
+    SCROLL_DEAD --> SCROLL_ACTIVE : contact [outside dead zone]
+    SCROLL_DEAD --> INACTIVE      : lift
+
+
+    note left of INACTIVE
+        Finger: up · Button: none · Timers: all idle
+        pad_off timer may still be pending (PAD layer stays ON)
+        ──────────────────────────────────────────
+        → contact [scroll rim AND left half]:
+            cancel pad_off timer
+            scroll_ref_x/y ← current
+            scroll_clicks_rem ← 0
+            scroll_direction ← lower half → H, upper half → V
+            emit BTN_TOUCH=1  [PAD ON]
+        → contact [else]:
+            cancel pad_off timer
+            is_left ← x > X_RCLICK_MIN
+            touch_start_x/y ← current
+            prev_scaled_x/y ← current
+            schedule tap_timeout
+            emit BTN_TOUCH=1  [PAD ON]
+        → pad_off timer fires:
+            emit BTN_TOUCH=0  [PAD OFF]
+        ──────────────────────────────────────────
+        Zone order (checked first-match):
+          RIM+LEFT  scroll rim AND left half AND y not in scroll exclusion band → scroll
+          RIGHT-CLICK  x ≤ X_RCLICK_MIN          → is_left=false
+          PRIMARY   everything else              → is_left=true
+        Scroll exclusion band: y ∈ [PAD_CENTER±excl_half]
+          where excl_half = 1024 × scroll_exclusion_zone_percent / 100 / 2
+    end note
+
+    note right of TAP_PENDING
+        Finger: down · Button: none
+        Timer: tap_timeout armed
+        Per-packet: cursor movement SUPPRESSED
+        prev_scaled_x/y stays at touch_start
+        ──────────────────────────────────────────
+        → tap_timeout [contact]:
+            if tap-snap: prev_scaled_x/y ← current
+            [enter MOVING]
+            first MOVING packet emits delta from prev_scaled
+        → tap_timeout [lift]:
+            emit is_left ? BTN_0=1 : BTN_1=1  (button down)
+            schedule drag_window_timeout
+            [enter DRAG_WINDOW — PAD stays ON]
+        → contact [z ≥ FORCE_DRAG_Z_THRESHOLD]:
+            cancel tap_timeout
+            emit is_left ? BTN_0=1 : BTN_1=1  (button down, sync)
+            prev_scaled_x/y ← current  (snap)
+            [enter DRAGGING — PAD stays ON]
+    end note
+
+    note right of MOVING
+        Finger: down · Button: none
+        Per-packet: emit REL_X, REL_Y
+            delta = current - prev_scaled_x/y
+            prev_scaled_x/y ← current
+        ──────────────────────────────────────────
+        → lift:
+            schedule pad_off timer  [deferred PAD OFF]
+        → contact [z ≥ FORCE_DRAG_Z_THRESHOLD]:
+            is_left ← true  (always left for force-drag)
+            prev_scaled_x/y ← current  (snap)
+            emit BTN_0=1  (left button down, sync)
+            [enter DRAGGING — PAD stays ON]
+    end note
+
+    note right of DRAG_WINDOW
+        Finger: UP · Button: HELD (is_left → BTN_0, else BTN_1)
+        Timer: drag_window_timeout armed
+        Waiting for re-touch to begin drag
+        ──────────────────────────────────────────
+        → contact [z ≥ DOUBLE_CLICK_DRAG_Z_THRESHOLD]:
+            prev_scaled_x/y ← current  (snap)
+            cancel drag_window_timeout
+            [enter DRAGGING — PAD stays ON]
+        → contact [z < DOUBLE_CLICK_DRAG_Z_THRESHOLD]:
+            emit is_left ? BTN_0=0 : BTN_1=0  (release, sync)
+            cancel drag_window_timeout
+            recompute is_left ← x > X_RCLICK_MIN
+            touch_start_x/y ← current
+            prev_scaled_x/y ← current
+            schedule tap_timeout
+            [enter TAP_PENDING — PAD stays ON]
+        → drag_window_timeout:
+            emit is_left ? BTN_0=0 : BTN_1=0  (release, sync)
+            schedule pad_off timer  [deferred PAD OFF]
+    end note
+
+    note right of DRAGGING
+        Finger: down · Button: HELD (per is_left)
+        Per-packet: emit REL_X, REL_Y
+            delta = current - prev_scaled_x/y
+            prev_scaled_x/y ← current
+        ──────────────────────────────────────────
+        → lift [last position at drag-jump rim]:
+            schedule drag_jump_timeout
+            [enter DRAG_JUMP — PAD stays ON, button stays held]
+        → lift [last position not at drag-jump rim]:
+            emit is_left ? BTN_0=0 : BTN_1=0  (release, sync)
+            schedule pad_off timer  [deferred PAD OFF]
+    end note
+
+    note right of DRAG_JUMP
+        Finger: UP · Button: HELD (per is_left)
+        Timer: drag_jump_timeout armed
+        User repositioning finger across pad
+        ──────────────────────────────────────────
+        → contact:
+            prev_scaled_x/y ← current  (snap)
+            cancel drag_jump_timeout
+            [enter DRAGGING — PAD stays ON]
+        → drag_jump_timeout:
+            emit is_left ? BTN_0=0 : BTN_1=0  (release, sync)
+            schedule pad_off timer  [deferred PAD OFF]
+    end note
+
+    note right of SCROLL_ACTIVE
+        Finger: down · Button: none
+        scroll_direction set on entry (retained through SCROLL_DEAD):
+            lower half → HORIZONTAL (REL_HWHEEL)
+            upper half → VERTICAL   (REL_WHEEL)
+        Per-packet:
+            dot = ref_x·cx + ref_y·cy  (centred coords)
+            det = ref_x·cy − ref_y·cx
+            ang = atan2_16(det, dot)
+            scroll_clicks_rem += ang · WHEEL_CLICKS
+            emit whole clicks; keep remainder
+            scroll_ref_x/y ← current
+        ──────────────────────────────────────────
+        → contact [in dead zone]:
+            [enter SCROLL_DEAD — scroll_direction kept]
+        → lift:
+            scroll_clicks_rem ← 0
+            schedule pad_off timer  [deferred PAD OFF]
+    end note
+
+    note right of SCROLL_DEAD
+        Finger: down · Button: none
+        Entered when finger crosses pad centre
+        Per-packet: scroll SUPPRESSED
+        scroll_direction retained for resume
+        ──────────────────────────────────────────
+        → contact [outside dead zone]:
+            scroll_ref_x/y ← current  (reset reference)
+            [enter SCROLL_ACTIVE — same scroll_direction]
+        → lift:
+            schedule pad_off timer  [deferred PAD OFF]
+    end note

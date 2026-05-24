@@ -1,0 +1,19 @@
+/*
+ * Debug-only USB CDC ACM additions for the Toucan right half.
+ *
+ * The normal right-half split build does not expose ZMK USB HID, but Zephyr's
+ * USB device stack is still available. This adds a second CDC ACM interface for
+ * repo-local RPC while zmk-usb-logging provides the console CDC ACM port.
+ */
+
+/ {
+    chosen {
+        zmk,toucan-debug-rpc-uart = &toucan_right_debug_rpc_uart;
+    };
+};
+
+&zephyr_udc0 {
+    toucan_right_debug_rpc_uart: toucan_right_debug_rpc_uart {
+        compatible = "zephyr,cdc-acm-uart";
+    };
+};

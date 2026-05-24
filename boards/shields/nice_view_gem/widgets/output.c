@@ -1,6 +1,7 @@
 #include <zephyr/kernel.h>
 #include "output.h"
 #include "../assets/custom_fonts.h"
+#include <zmk-toucan/text_state.h>
 
 LV_IMG_DECLARE(bt_no_signal);
 LV_IMG_DECLARE(bt_unbonded);
@@ -27,6 +28,24 @@ static void draw_ble_connected(lv_obj_t *canvas) {
     lv_canvas_draw_text(canvas, 12, 140, SCREEN_WIDTH-8, &label_dsc, "BLE");
 }
 
+static void draw_host_mode(lv_obj_t *canvas) {
+    const char *os_text;
+    switch (toucan_text_mode_get_current()) {
+    case TOUCAN_TEXT_MODE_MACOS:
+        os_text = "AP";
+        break;
+    case TOUCAN_TEXT_MODE_IOS:
+        os_text = "IO";
+        break;
+    default:
+        os_text = "LI";
+        break;
+    }
+    lv_draw_label_dsc_t label_dsc;
+    init_label_dsc(&label_dsc, LVGL_FOREGROUND, &quinquefive_8, LV_TEXT_ALIGN_LEFT);
+    lv_canvas_draw_text(canvas, 48, 140, 30, &label_dsc, os_text);
+}
+
 void draw_output_status(lv_obj_t *canvas, const struct status_state *state) {
     switch (state->selected_endpoint.transport) {
         case ZMK_TRANSPORT_USB:
@@ -39,6 +58,8 @@ void draw_output_status(lv_obj_t *canvas, const struct status_state *state) {
             draw_ble_disconnected(canvas);
             break;
     }
+
+    draw_host_mode(canvas);
 
     /*
     lv_draw_label_dsc_t label_dsc;

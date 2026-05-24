@@ -1,0 +1,8 @@
+# Copyright (c) 2026
+# SPDX-License-Identifier: MIT
+
+description: Toucan PAD layer hold behavior
+
+compatible: "zmk,behavior-toucan-pad-layer-hold"
+
+include: one_param.yaml

@@ -1,0 +1,8 @@
+# Copyright (c) 2026
+# SPDX-License-Identifier: MIT
+
+description: Toucan text symbol behavior
+
+compatible: "zmk,behavior-toucan-text-symbol"
+
+include: one_param.yaml

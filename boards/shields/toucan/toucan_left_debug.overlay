@@ -1,0 +1,15 @@
+/*
+ * Give the Toucan debug RPC its own CDC ACM UART so that ZMK Studio's UART
+ * transport can use the snippet-provided studio-rpc-uart without conflict.
+ */
+&zephyr_udc0 {
+    toucan_debug_rpc_uart: toucan_debug_rpc_uart {
+        compatible = "zephyr,cdc-acm-uart";
+    };
+};
+
+/ {
+    chosen {
+        zmk,toucan-debug-rpc-uart = &toucan_debug_rpc_uart;
+    };
+};

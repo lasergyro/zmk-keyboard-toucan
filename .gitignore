@@ -1,0 +1,14 @@
+.zmk-venv/
+.keymap-drawer-venv/
+.debug-venv/
+.ccache/
+.sccache/
+.zmk-workspace/
+build/
+artifacts/
+debug-logs/
+references/
+.DS_Store
+.claude/
+__pycache__/
+**/__pycache__/

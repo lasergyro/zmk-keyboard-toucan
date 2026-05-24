@@ -1,0 +1,29 @@
+menu "Toucan custom behaviors"
+
+config TOUCAN_DEBUG_RPC
+    bool "Enable Toucan debug RPC over USB CDC ACM"
+    default n
+
+config TOUCAN_DEBUG_QUARANTINE
+    bool "Enable Toucan debug quarantine mode"
+    default y if TOUCAN_DEBUG_RPC
+
+DT_COMPAT_ZMK_BEHAVIOR_TOUCAN_OUTPUT_MODE := zmk,behavior-toucan-output-mode
+
+config ZMK_BEHAVIOR_TOUCAN_OUTPUT_MODE
+    bool
+    default $(dt_compat_enabled,$(DT_COMPAT_ZMK_BEHAVIOR_TOUCAN_OUTPUT_MODE))
+
+DT_COMPAT_ZMK_BEHAVIOR_TOUCAN_TEXT_SYMBOL := zmk,behavior-toucan-text-symbol
+
+config ZMK_BEHAVIOR_TOUCAN_TEXT_SYMBOL
+    bool
+    default $(dt_compat_enabled,$(DT_COMPAT_ZMK_BEHAVIOR_TOUCAN_TEXT_SYMBOL))
+
+DT_COMPAT_ZMK_BEHAVIOR_TOUCAN_CLIPBOARD := zmk,behavior-toucan-clipboard
+
+config ZMK_BEHAVIOR_TOUCAN_CLIPBOARD
+    bool
+    default $(dt_compat_enabled,$(DT_COMPAT_ZMK_BEHAVIOR_TOUCAN_CLIPBOARD))
+
+endmenu

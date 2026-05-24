@@ -1,0 +1,48 @@
+#include <dt-bindings/zmk-toucan/text.h>
+
+#undef ZMK_LEADER_SEQUENCE
+#define ZMK_LEADER_SEQUENCE(name, leader_bindings, leader_sequence) \
+    / { \
+        behaviors { \
+            leader: leader { \
+                compatible = "zmk,behavior-leader-key"; \
+                #binding-cells = <0>; \
+                ignore-keys = <LSHFT RSHFT>; \
+                leader_sequence_ ## name { \
+                    bindings = <leader_bindings>; \
+                    sequence = <leader_sequence>; \
+                }; \
+            }; \
+        }; \
+    };
+
+/* German umlauts — E namespace (Q+W combo → &leader + E, then A/O/U/S) */
+ZMK_LEADER_SEQUENCE(de_ae,      &txtsym TOUCAN_TEXT_SYMBOL_DE_AE,         E A)  // ä
+ZMK_LEADER_SEQUENCE(de_oe,      &txtsym TOUCAN_TEXT_SYMBOL_DE_OE,         E O)  // ö
+ZMK_LEADER_SEQUENCE(de_ue,      &txtsym TOUCAN_TEXT_SYMBOL_DE_UE,         E U)  // ü
+ZMK_LEADER_SEQUENCE(de_eszett,  &txtsym TOUCAN_TEXT_SYMBOL_DE_SS,         E S)  // ß
+
+#include "leader_greek.dtsi"
+
+
+/* SYS leader layer — N namespace (V+B combo → &leader + N, then letter) */
+#ifdef CONFIG_ZMK_BLE
+ZMK_LEADER_SEQUENCE(sys_sel_0,  &bt BT_SEL 0,       N A)  // $$mdi:bluetooth$$1
+ZMK_LEADER_SEQUENCE(sys_sel_1,  &bt BT_SEL 1,       N S)  // $$mdi:bluetooth$$2
+ZMK_LEADER_SEQUENCE(sys_sel_2,  &bt BT_SEL 2,       N D)  // $$mdi:bluetooth$$3
+ZMK_LEADER_SEQUENCE(sys_sel_3,  &bt BT_SEL 3,       N F)  // $$mdi:bluetooth$$4
+ZMK_LEADER_SEQUENCE(sys_sel_4,  &bt BT_SEL 4,       N G)  // $$mdi:bluetooth$$5
+ZMK_LEADER_SEQUENCE(sys_clr,    &bt BT_CLR,         N Q)  // $$mdi:bluetooth-off$$
+ZMK_LEADER_SEQUENCE(usb,        &out OUT_USB,       N V)  // $$mdi:usb$$
+ZMK_LEADER_SEQUENCE(ble,        &out OUT_BLE,       N W)  // $$mdi:bluetooth-connect$$
+#endif
+#ifdef CONFIG_ZMK_STUDIO
+ZMK_LEADER_SEQUENCE(studio,     &studio_unlock,     N C)  // $$mdi:brush$$
+#endif
+ZMK_LEADER_SEQUENCE(reset,      &sys_reset,         N Z)  // $$mdi:restart$$
+ZMK_LEADER_SEQUENCE(boot,       &bootloader,        N X)  // $$mdi:flash$$
+/* Output mode switches */
+ZMK_LEADER_SEQUENCE(output_mode_linux, &hostmode TOUCAN_TEXT_ACTION_SET_LINUX, N E)  // $$mdi:linux$$
+ZMK_LEADER_SEQUENCE(output_mode_macos, &hostmode TOUCAN_TEXT_ACTION_SET_MACOS, N R)  // $$mdi:apple$$
+ZMK_LEADER_SEQUENCE(output_mode_ios,   &hostmode TOUCAN_TEXT_ACTION_SET_IOS,   N T)  // $$mdi:apple-ios$$
+

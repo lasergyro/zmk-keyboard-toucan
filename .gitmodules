@@ -1,0 +1,7 @@
+[submodule "external/cirque-input-module"]
+	path = external/cirque-input-module
+	url = https://github.com/geeksville/cirque-input-module
+	branch = toucan
+[submodule "external/zmk-input-gestures"]
+	path = external/zmk-input-gestures
+	url = https://github.com/bennypowers/zmk-input-gestures
