@@ -33,7 +33,4 @@ if ((NOT CONFIG_ZMK_SPLIT) OR CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
     src/behaviors/behavior_toucan_clipboard.c)
 endif()
 
-if (CONFIG_ZMK_SPLIT AND NOT CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
-  target_sources_ifdef(CONFIG_TOUCAN_DEBUG_RPC app PRIVATE
-    src/behaviors/behavior_debug_pad.c)
-endif()
+
