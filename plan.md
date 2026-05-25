@@ -63,10 +63,8 @@ Pinnacle (abs mode) → input_pinnacle.c (state machine)
 | 0 | BASE | Default | - |
 | 1 | NAV | `&mo 1` | Left Thumb (Middle) |
 | 2 | FN | `&mo 2` | Left Thumb (Outer) |
-| 3 | NUM | `&mo 3` | Right Thumb (Outer) |
-| 4 | PAD | `BTN_TOUCH` | Touchpad (automatic) |
-| 5 | PAN | `&mo 5` | Held from Pad layer |
-| 6 | MEDIA | Conditional | Held: NAV + NUM |
+| 3 | PAD | `BTN_TOUCH` | Touchpad (automatic) |
+| 4 | PAN | `&mo 4` | Held from Pad layer |
 
 ### Key Files
 | File | Role |
@@ -79,10 +77,11 @@ Pinnacle (abs mode) → input_pinnacle.c (state machine)
 | `src/debug_rpc.c` | Debug RPC commands (get/set gesture params, persist to NVS) |
 | `scripts/touchpad_params_live.py` | Live-tune: watches overlay, sends `set` RPC on save |
 | `touchpad_state_machine.md` | Full state machine spec |
-| `config/toucan.keymap` | Layer definitions and key bindings |
-| `config/combos.dtsi` | Two-key combo definitions |
-| `config/leader.dtsi` / `config/leader_greek.dtsi` | Leader sequences (SYS, German, Greek namespaces) |
-| `draw/config.yaml` | Keymap visualization config (annotation positions, colors, binding labels) |
+| [[config/toucan.keymap]] | Layer definitions and key bindings |
+| [[config/combos.dtsi]] | Two-key combo definitions |
+| [[config/leader.dtsi]] / [[config/leader_greek.dtsi]] | Leader sequences (SYS, German, Greek namespaces) |
+| [[draw/config.yaml]] | Keymap visualization config (annotation positions, colors, binding labels) |
+| [[references/generic_desktop.md]] | Generic Desktop HID usage page reference (e.g. System Do Not Disturb) |
 
 ---
 
@@ -90,11 +89,11 @@ Pinnacle (abs mode) → input_pinnacle.c (state machine)
 
 For exact key assignments, see the source files above. High-level structure:
 
-- **Layers** — defined in `config/toucan.keymap`. See Architecture for indices.
+- **Layers** — defined in [[config/toucan.keymap]]. See Architecture for indices.
 - **Homerow mods** — timeless HRMs on the home row (GUI–ALT–SHIFT–CTRL, pinky to index, symmetric). Uses `MAKE_HRM` / `ZMK_HOLD_TAP` from zmk-helpers.
 - **Combos** — two-key horizontal and vertical combos in `config/combos.dtsi`. Produce symbols, navigation shortcuts, and namespace-combo triggers.
-- **Leader sequences** — three namespaces triggered by combo macros (`greek_ns`, `german_ns`, `sys_ns`). `&leader` is never invoked bare. See `config/leader.dtsi` and `config/leader_greek.dtsi` for sequences.
-- **Visualization** — `draw/config.yaml` is the single source of truth for annotation slot positions and colors; `draw/generate-keymaps.rb` derives all layer/leader CSS from it. Run `./draw-keymap.sh` to regenerate `draw/keymap.svg`.
+- **Leader sequences** — three namespaces triggered by combo macros (`greek_ns`, `german_ns`, `sys_ns`). `&leader` is never invoked bare. See [[config/leader.dtsi]] and [[config/leader_greek.dtsi]] for sequences.
+- **Visualization** — [[draw/config.yaml]] is the single source of truth for annotation slot positions and colors; `draw/generate-keymaps.rb` derives all layer/leader CSS from it. Run `./draw-keymap.sh` to regenerate [[draw/keymap.svg]].
 
 ---
 
@@ -160,11 +159,27 @@ zip_behaviors: zip_behaviors {
 ### Completed
 - Round 1: Touchpad gesture implementation — state machine, smart drag, force drag, persistent params, live tuning.
 - Round 2: Leader key — German umlauts, Greek characters, SYS namespace (BT, output modes, studio, reset, boot). Modules: `zmk-leader-key`, `zmk-unicode`.
-- Round 3: Combos, HRMs, layer restructure — six layers (BASE/NAV/FN/NUM/PAD/PAN), timeless homerow mods, two-key symbol/nav combos, namespace combo mechanism, schematic drawer refactor.
+- Round 3: Combos, HRMs, layer restructure — layers (BASE/NAV/FN/PAD/PAN), timeless homerow mods, two-key symbol/nav combos, namespace combo mechanism, schematic drawer refactor.
 
 ### Deferred
 - Gaming layer, Swapper/Alt-Tab, extended Unicode sets
-- Testing infrastructure (`pad_qi`/`pad_qo` synthetic tests, `rstart`/`rend` real-world traces) — see `rpc.md`
+- Testing infrastructure (`qi`/`qo` synthetic tests, `rstart`/`rend` real-world traces) — see `rpc.md`
+
+---
+
+## Testing Standards
+
+All automated tests must adhere to the following architecture:
+- **Peripheral Injection for Touch**: The split transport batches the BLE/RPC messages, causing them to arrive at the peripheral almost simultaneously. This means that timing/waits should be done on the left half, with some flushing of messages.
+- **Queued Execution**: No `time.sleep()` in test scripts. All timing and event sequences must be queued via `qi` and executed via `qo`.
+- **Global Position Injection**: Peripheral key events must be injected at the Central half using their global position indices.
+- **Clean Abstraction**: Tests must not import `serial_rpc.py` directly. All communication must use the `debug_tool.RPCSession` abstraction.
+- **Isolate Environment**: Use `quarantine on` during tests to block physical interference.
+- **Timestamp Drift**: Be aware that the `left_log` and `right_log` Zephyr uptime timestamps can drift or start with several seconds of offset.
+
+## Touchpad Testing Gotchas (Findings)
+
+- **DRAG_JUMP Suppression on Lift**: If a test sequence lifts the touch (`Z=0`) while the X/Y coordinates are at the edge (rim) of the pad, the gesture engine will enter `DRAG_JUMP` mode (waiting 500ms for the finger to return). This suppresses the `INPUT_BTN_TOUCH=0` event until the timeout expires, causing `PAD layer off` assertions to fail. The qo command needs to wait at least that amount of time to be able to capture all the events before finishing its report, so change the qo command accordingly (e.g. to have a timeout that is reset every time an event is outputed).
 
 ---
 
@@ -175,3 +190,13 @@ zip_behaviors: zip_behaviors {
 3. **Touchpad First**: Right half owns Pinnacle hardware — flash it first if pad dies.
 
 **BLE vs USB**: ZMK routes mouse events over USB when plugged in. Unplug after flashing to test BLE behavior.
+
+---
+
+## Agent Command Guidelines
+
+To prevent repetitive mistakes during future sessions, follow these rules when using tools:
+- **Avoid `cat | grep` or `grep` in bash**: Always prioritize the `grep_search` tool over running `grep` in a bash command. Do not use `cat` for viewing files or `grep` for searching files via the `run_command` tool.
+- **File Finding**: Do not use `find . -name "..."` as an unbounded bash command (it runs as a long background task). Instead, use `grep_search` with the `Includes` filter or `list_dir` to find files efficiently.
+- **Task Logs**: Never use `cat` to read a background task's log file (e.g., `.system_generated/tasks/task-xxx.log`) manually, as it may not exist yet or might be truncated.
+- **Background Tasks**: Do not poll a running background task repeatedly using `manage_task status`. Launch the task and yield your turn by making no more tool calls; the system will automatically notify you and wake you up when the task completes.

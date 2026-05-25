@@ -137,8 +137,15 @@ ZMK_SUBSCRIPTION(widget_battery_peripheral_status, zmk_peripheral_battery_state_
  **/
 
 static void set_layer_status(struct zmk_widget_screen *widget, struct layer_status_state state) {
-    widget->state.layer_index = zmk_keymap_highest_layer_active();
-    draw_top(widget->obj, widget->cbuf3, &widget->state);
+    zmk_keymap_layers_state_t mask = zmk_keymap_layer_state();
+    uint8_t highest = 0;
+    for (int i = 0; i < ZMK_KEYMAP_LAYERS_LEN; i++) {
+        if (mask & (1 << i)) {
+            highest = i;
+        }
+    }
+    widget->state.layer_index = highest;
+    draw_top(widget->obj, widget->cbuf, &widget->state);
 }
 
 static void layer_status_update_cb(struct layer_status_state state) {

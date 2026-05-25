@@ -14,7 +14,8 @@ manifest:
       url-base: https://github.com/geeksville
   projects:
     - name: zmk
-      remote: zmkfirmware
+      url: ../../external/zmk
+      revision: toucan-fork
       import: app/west.yml
     - name: zmk-helpers
       remote: urob

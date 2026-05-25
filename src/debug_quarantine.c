@@ -22,6 +22,8 @@ int __real_zmk_endpoints_send_mouse_report(void);
 
 bool toucan_debug_quarantine_is_enabled(void) { return quarantine_enabled; }
 
+void capture_output(char type, int32_t val1, int32_t val2);
+
 static void quarantine_clear_reports_if_supported(void) {
 #if !IS_ENABLED(CONFIG_ZMK_SPLIT) || IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
     zmk_endpoints_clear_current();
@@ -62,6 +64,13 @@ int __wrap_zmk_endpoints_send_mouse_report(void) {
             "Debug quarantine dropped mouse report buttons=0x%02X move=%d/%d scroll=%d/%d",
             report->buttons, report->d_x, report->d_y, report->d_scroll_x,
             report->d_scroll_y);
+            
+        if (report->d_x != 0 || report->d_y != 0) {
+            capture_output('M', report->d_x, report->d_y);
+        }
+        if (report->d_scroll_x != 0 || report->d_scroll_y != 0) {
+            capture_output('S', report->d_scroll_x, report->d_scroll_y);
+        }
         return 0;
     }
 

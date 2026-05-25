@@ -11,7 +11,7 @@
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
-#define TOUCAN_PAD_LAYER 4
+#define TOUCAN_PAD_LAYER 3
 
 static int toucan_debug_pad_trace_listener(const zmk_event_t *eh) {
     const struct zmk_layer_state_changed *layer_ev = as_zmk_layer_state_changed(eh);

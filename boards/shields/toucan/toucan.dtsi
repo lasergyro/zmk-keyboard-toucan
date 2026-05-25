@@ -109,7 +109,7 @@
         compatible = "zmk,input-processor-behaviors";
         #input-processor-cells = <0>;
         codes = <INPUT_BTN_TOUCH>;
-        bindings = <&mo 4>;
+        bindings = <&mo 3>;
     };
 
     glidepoint_listener: glidepoint_listener {
@@ -118,9 +118,9 @@
         device = <&glidepoint_split>;
         input-processors = <&zip_touch_behaviors>, <&zip_xy_transform INPUT_TRANSFORM_X_INVERT>;
 
-        /* PAN layer (index 5): convert XY movement to scroll events */
+        /* PAN layer (index 4): convert XY movement to scroll events */
         pan_override: pan_override {
-            layers = <5>;
+            layers = <4>;
             input-processors = <&zip_xy_to_scroll_mapper>;
         };
     };

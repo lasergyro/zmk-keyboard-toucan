@@ -5,3 +5,7 @@
 [submodule "external/zmk-input-gestures"]
 	path = external/zmk-input-gestures
 	url = https://github.com/bennypowers/zmk-input-gestures
+[submodule "external/zmk"]
+	path = external/zmk
+	url = https://github.com/zmkfirmware/zmk.git
+	branch = toucan-fork

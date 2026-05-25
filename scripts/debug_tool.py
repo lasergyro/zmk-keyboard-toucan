@@ -453,6 +453,53 @@ def usage() -> int:
     return 0
 
 
+class RPCSession:
+    """Clean abstraction for automated tests to communicate with firmware."""
+    def __init__(self, selector: str = "left", timeout: float = 5.0):
+        self.device = select_device("rpc", selector)
+        self.session = SerialRPCSession(self.device.path, timeout_s=timeout)
+
+    def __enter__(self) -> RPCSession:
+        self.session.open()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.session.close()
+
+    def request(self, command: str) -> list[str]:
+        """Send a command and return all response lines."""
+        return self.session.request_lines(command)
+
+    def run_scenario(self, scenario: list[str]) -> list[str]:
+        """Queue and execute a scenario via pad_qi/pad_qo."""
+        handle = self.session.handle
+        assert handle is not None
+        
+        # 1. Queue scenario
+        handle.write(b"pad_qi\n")
+        handle.readline() # Consume (ready...)
+        for line in scenario:
+            handle.write(line.encode("utf-8") + b"\n")
+        handle.write(b".\n")
+        handle.readline() # Consume OK pad_qi
+        
+        # 2. Execute and capture
+        handle.write(b"pad_qo\n")
+        
+        output = []
+        # Wait up to 10s for the scenario to finish and stream back results
+        deadline = time.monotonic() + 10.0
+        while time.monotonic() < deadline:
+            line = handle.readline().decode("utf-8", "ignore").strip()
+            if not line:
+                continue
+            if line.startswith("OK pad_qo"):
+                break
+            output.append(line)
+            
+        return output
+
+
 def main(argv: Iterable[str]) -> int:
     args = list(argv)
     command = args[0] if args else "help"

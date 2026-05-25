@@ -97,6 +97,15 @@ layers = raw_data.fetch("layers", {})
 combos = Array(raw_data["combos"]).map { |combo| deep_copy(combo) }
 two_key_combos = combos.select { |combo| Array(combo["p"]).length == 2 && !combo["hidden"] }
 
+# ── Combo Shifts ────────────────────────────────────────────────────────────
+# Convert automatically parsed 's' (shifted) properties on combos to 'right'
+# and tag them with combo-shift for pink, smaller rendering.
+two_key_combos.each do |combo|
+  if combo["k"].is_a?(Hash) && combo["k"]["s"]
+    combo["k"]["right"] = annotate(combo["k"].delete("s"), "combo-shift")
+  end
+end
+
 # ── Toucan config ───────────────────────────────────────────────────────────
 
 # annotation_layers: { "Nav" => { "field" => "tr", "color" => "#e9ab2e" }, ... }
@@ -205,26 +214,6 @@ leader_sequences.each do |seq|
   overlay_layer[idx][anno[:field]] = annotate(label, anno[:extra_class])
 end
 
-# ── Shifted-key annotations ────────────────────────────────────────────────
-# Show shifted characters above the base character (physical keyboard style).
-# tap position → shifted, hold position → base.
-
-SHIFTED_PAIRS = {
-  "`"  => "~",
-  ","  => "<",
-  "."  => ">",
-  "/"  => "?",
-  "'"  => "\"",
-}
-
-overlay_layer.each do |entry|
-  tap = entry["t"]
-  shifted = SHIFTED_PAIRS[tap]
-  next unless shifted
-
-  entry["t"] = shifted
-  entry["h"] = tap
-end
 
 # ── Keymap YAML (overlay + ghost combo layer) ───────────────────────────────
 

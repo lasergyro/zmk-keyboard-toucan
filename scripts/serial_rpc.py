@@ -160,6 +160,7 @@ class SerialRPCSession:
 
         if verb in RESET_FALLBACK_VERBS:
             return [f"OK {verb}"]
+        print(f"DEBUG: request_lines returning: {lines}", file=sys.stderr)
         return lines
 
     def send_async(self, payload: str) -> None:

@@ -241,9 +241,10 @@ setup_compiler_cache
 COMMON_DEBUG_CMAKE_ARGS=(
   -DCONFIG_ASSERT=y
   -DCONFIG_LOG_MODE_DEFERRED=y
-  -DCONFIG_LOG_BUFFER_SIZE=8192
+  -DCONFIG_LOG_BUFFER_SIZE=32768
   -DCONFIG_TOUCAN_DEBUG_RPC=y
   -DCONFIG_ZMK_LOG_LEVEL_DBG=y
+  -DCONFIG_USB_MAX_NUM_TRANSFERS=16
   # Zephyr's DTS preprocessor does not include autoconf.h, so #ifdef CONFIG_*
   # guards in keymap .dtsi files are always false unless we forward them here.
   "-DDTS_EXTRA_CPPFLAGS=-DCONFIG_ZMK_BLE=1;-DCONFIG_ZMK_STUDIO=1"

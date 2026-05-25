@@ -10,6 +10,14 @@
     chosen {
         zmk,toucan-debug-rpc-uart = &toucan_right_debug_rpc_uart;
     };
+
+    behaviors {
+        dbg_pad: dbg_pad {
+            compatible = "zmk,behavior-debug-pad";
+            #binding-cells = <2>;
+            label = "dbg_pad";
+        };
+    };
 };
 
 &zephyr_udc0 {

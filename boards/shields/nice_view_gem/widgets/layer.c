@@ -21,9 +21,15 @@ void draw_layer_status(lv_obj_t *canvas, const struct status_state *state) {
 
     if (layer_name == NULL || layer_name[0] == '\0') {
         sprintf(fallback_layer_name, "L#%" PRIu8, state->layer_index);
-        
         layer_name = fallback_layer_name;
     }
 
     lv_canvas_draw_text(canvas, 0, 70, SCREEN_WIDTH, &label_dsc, layer_name);
+
+    // Debug bitmask
+    lv_draw_label_dsc_t debug_dsc;
+    init_label_dsc(&debug_dsc, LVGL_FOREGROUND, &quinquefive_8, LV_TEXT_ALIGN_CENTER);
+    char debug_str[16];
+    sprintf(debug_str, "0x%02X idx %d", (unsigned int)zmk_keymap_layer_state(), state->layer_index);
+    lv_canvas_draw_text(canvas, 0, 100, SCREEN_WIDTH, &debug_dsc, debug_str);
 }

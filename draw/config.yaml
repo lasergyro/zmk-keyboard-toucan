@@ -53,6 +53,8 @@ toucan:
     combo:
       field: right
       color: "#ff70b8"
+      extra_class: combo-shift
+      combo_type: combo-shift
 
 parse_config:
   zmk_additional_includes:
@@ -77,10 +79,10 @@ parse_config:
     "&greek_ns": "α"
     "&german_ns": "ä"
     "&sys_ns": "$$mdi:cog$$"
-    "&lpar_lt": { "t": "(", "right": "<" }
-    "&rpar_gt": { "t": ")", "right": ">" }
-    "&kp LBKT": { "t": "[", "right": "{" }
-    "&kp RBKT": { "t": "]", "right": "}" }
+    "&lpar_lt": { "t": "(", "s": "<" }
+    "&rpar_gt": { "t": ")", "s": ">" }
+    "&kp LBKT": { "t": "[", "s": "{" }
+    "&kp RBKT": { "t": "]", "s": "}" }
     "&kp LS(LA(TAB))": "$$mdi:window-maximize$$"
     "&clipboard 0": "$$mdi:content-cut$$"
     "&clipboard 1": "$$mdi:content-copy$$"
@@ -151,10 +153,14 @@ parse_config:
     BSLH: \
     CARET: ^
     COMMA: ","
+    comma_morph: ","
     DLLR: $
     DOT: .
+    dot_morph: .
     EQUAL: "="
     EXCL: "!"
+    QMARK: "?"
+    qmark_morph: "?"
     FSLH: /
     GRAVE: "`"
     HASH: "#"
@@ -169,8 +175,15 @@ parse_config:
     RBKT: "]"
     RBRC: "}"
     RPAR: )
+    COMMA: ","
     SEMI: ;
+    DOT: .
+    COLON: ":"
+    QMARK: "?"
+    qmark_morph: "?"
     SQT: "'"
+    sqt_morph: "'"
+    DQT: '"'
     TILDE: "~"
     UNDER: _
 
