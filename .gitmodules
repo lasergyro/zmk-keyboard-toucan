@@ -9,3 +9,9 @@
 	path = external/zmk
 	url = https://github.com/zmkfirmware/zmk.git
 	branch = toucan-fork
+[submodule "references/model"]
+	path = references/model
+	url = https://github.com/geeksville/zmk-urob-geeksville
+[submodule "references/qmk_firmware"]
+	path = references/qmk_firmware
+	url = https://github.com/qmk/qmk_firmware.git

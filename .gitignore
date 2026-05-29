@@ -7,7 +7,6 @@
 build/
 artifacts/
 debug-logs/
-references/
 .DS_Store
 .claude/
 __pycache__/

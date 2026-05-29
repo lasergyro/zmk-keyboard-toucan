@@ -171,7 +171,7 @@ Logs saved to `debug-logs/<timestamp>-<side>-<port>.log`.
 ## Architecture
 
 Touchpad specific notes in [[touchpad.md]].
-Generic Desktop HID usage page reference (e.g. System Do Not Disturb) is in [[references/generic_desktop.md]].
+Generic Desktop HID usage page reference (e.g. System Do Not Disturb) is in [[plans/generic_desktop.md]].
 
 ### Build Composition
 

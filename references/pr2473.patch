@@ -1,0 +1,2525 @@
+From 642e4e163b8139508ab0733e2392884e9da4436c Mon Sep 17 00:00:00 2001
+From: angweekiat <weekiatah@gmail.com>
+Date: Sun, 8 Sep 2024 21:25:41 +0800
+Subject: [PATCH 01/10] This works, able to sleep
+
+---
+ app/include/zmk/hid.h     | 183 +++++++++++++++++++++++---------------
+ app/include/zmk/usb_hid.h |   1 +
+ app/src/endpoints.c       |  29 ++++++
+ app/src/hid.c             |  36 ++++++++
+ app/src/usb_hid.c         |  10 +++
+ 5 files changed, 186 insertions(+), 73 deletions(-)
+
+diff --git a/app/include/zmk/hid.h b/app/include/zmk/hid.h
+index 766fb9c4632..b4521607e3b 100644
+--- a/app/include/zmk/hid.h
++++ b/app/include/zmk/hid.h
+@@ -76,39 +76,40 @@
+ #define ZMK_HID_REPORT_ID_LEDS 0x01
+ #define ZMK_HID_REPORT_ID_CONSUMER 0x02
+ #define ZMK_HID_REPORT_ID_MOUSE 0x03
++#define ZMK_HID_REPORT_ID_GENERIC_DESKTOP 0x04
+ 
+ static const uint8_t zmk_hid_report_desc[] = {
+-    HID_USAGE_PAGE(HID_USAGE_GEN_DESKTOP),
+-    HID_USAGE(HID_USAGE_GD_KEYBOARD),
+-    HID_COLLECTION(HID_COLLECTION_APPLICATION),
+-    HID_REPORT_ID(ZMK_HID_REPORT_ID_KEYBOARD),
+-    HID_USAGE_PAGE(HID_USAGE_KEY),
+-    HID_USAGE_MIN8(HID_USAGE_KEY_KEYBOARD_LEFTCONTROL),
+-    HID_USAGE_MAX8(HID_USAGE_KEY_KEYBOARD_RIGHT_GUI),
+-    HID_LOGICAL_MIN8(0x00),
++    HID_USAGE_PAGE(HID_USAGE_GEN_DESKTOP), // HID Usage page item following usage are within gen
++                                           // desktop page
++    HID_USAGE(HID_USAGE_GD_KEYBOARD),      // 0x06 specify usage of keyboard
++    // Start of keyboard collection
++    HID_COLLECTION(HID_COLLECTION_APPLICATION), // keyboard collection? Start collection (group)
++    HID_REPORT_ID(ZMK_HID_REPORT_ID_KEYBOARD),  // 0x01 Set zmk id, doesn't matter
++
++    // Modifier keys // [ Account for 1st byte in report ]
++    HID_USAGE_PAGE(HID_USAGE_KEY), HID_USAGE_MIN8(HID_USAGE_KEY_KEYBOARD_LEFTCONTROL),
++    HID_USAGE_MAX8(HID_USAGE_KEY_KEYBOARD_RIGHT_GUI), HID_LOGICAL_MIN8(0x00),
+     HID_LOGICAL_MAX8(0x01),
+-
+-    HID_REPORT_SIZE(0x01),
+-    HID_REPORT_COUNT(0x08),
+-    HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+-
+-    HID_USAGE_PAGE(HID_USAGE_KEY),
+-    HID_REPORT_SIZE(0x08),
+-    HID_REPORT_COUNT(0x01),
+-    HID_INPUT(ZMK_HID_MAIN_VAL_CONST | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
++    HID_REPORT_SIZE(0x01),  // Number of bits in 1 field (1)
++    HID_REPORT_COUNT(0x08), // Number of data fields included in the report (8), so 8x1bits = 1 byte
++    HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR |
++              ZMK_HID_MAIN_VAL_ABS), // Input (Data, Variable, Absolute)
++
++    // Reserved byte [ Account for 2nd in report ]
++    HID_USAGE_PAGE(HID_USAGE_KEY), // New usage page
++    HID_REPORT_SIZE(0x08),         // Each field is 8 bits
++    HID_REPORT_COUNT(0x01),        // Only 1 field
++                                   // Reserved byte?
++    HID_INPUT(ZMK_HID_MAIN_VAL_CONST | ZMK_HID_MAIN_VAL_VAR |
++              ZMK_HID_MAIN_VAL_ABS), // Input field for reserved byte (Const, Variable, Absolute)
+ 
+ #if IS_ENABLED(CONFIG_ZMK_HID_INDICATORS)
+ 
+-    HID_USAGE_PAGE(HID_USAGE_LED),
+-    HID_USAGE_MIN8(HID_USAGE_LED_NUM_LOCK),
+-    HID_USAGE_MAX8(HID_USAGE_LED_KANA),
+-    HID_REPORT_SIZE(0x01),
+-    HID_REPORT_COUNT(0x05),
++    HID_USAGE_PAGE(HID_USAGE_LED), HID_USAGE_MIN8(HID_USAGE_LED_NUM_LOCK),
++    HID_USAGE_MAX8(HID_USAGE_LED_KANA), HID_REPORT_SIZE(0x01), HID_REPORT_COUNT(0x05),
+     HID_OUTPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+ 
+-    HID_USAGE_PAGE(HID_USAGE_LED),
+-    HID_REPORT_SIZE(0x03),
+-    HID_REPORT_COUNT(0x01),
++    HID_USAGE_PAGE(HID_USAGE_LED), HID_REPORT_SIZE(0x03), HID_REPORT_COUNT(0x01),
+     HID_OUTPUT(ZMK_HID_MAIN_VAL_CONST | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+ 
+ #endif // IS_ENABLED(CONFIG_ZMK_HID_INDICATORS)
+@@ -116,19 +117,13 @@ static const uint8_t zmk_hid_report_desc[] = {
+     HID_USAGE_PAGE(HID_USAGE_KEY),
+ 
+ #if IS_ENABLED(CONFIG_ZMK_HID_REPORT_TYPE_NKRO)
+-    HID_LOGICAL_MIN8(0x00),
+-    HID_LOGICAL_MAX8(0x01),
+-    HID_USAGE_MIN8(0x00),
+-    HID_USAGE_MAX8(ZMK_HID_KEYBOARD_NKRO_MAX_USAGE),
+-    HID_REPORT_SIZE(0x01),
++    HID_LOGICAL_MIN8(0x00), HID_LOGICAL_MAX8(0x01), HID_USAGE_MIN8(0x00),
++    HID_USAGE_MAX8(ZMK_HID_KEYBOARD_NKRO_MAX_USAGE), HID_REPORT_SIZE(0x01),
+     HID_REPORT_COUNT(ZMK_HID_KEYBOARD_NKRO_MAX_USAGE + 1),
+     HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+ #elif IS_ENABLED(CONFIG_ZMK_HID_REPORT_TYPE_HKRO)
+-    HID_LOGICAL_MIN8(0x00),
+-    HID_LOGICAL_MAX16(0xFF, 0x00),
+-    HID_USAGE_MIN8(0x00),
+-    HID_USAGE_MAX8(0xFF),
+-    HID_REPORT_SIZE(0x08),
++    HID_LOGICAL_MIN8(0x00), HID_LOGICAL_MAX16(0xFF, 0x00), HID_USAGE_MIN8(0x00),
++    HID_USAGE_MAX8(0xFF), HID_REPORT_SIZE(0x08),
+     HID_REPORT_COUNT(CONFIG_ZMK_HID_KEYBOARD_REPORT_SIZE),
+     HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_ARRAY | ZMK_HID_MAIN_VAL_ABS),
+ #else
+@@ -136,24 +131,17 @@ static const uint8_t zmk_hid_report_desc[] = {
+ #endif
+ 
+     HID_END_COLLECTION,
+-    HID_USAGE_PAGE(HID_USAGE_CONSUMER),
+-    HID_USAGE(HID_USAGE_CONSUMER_CONSUMER_CONTROL),
+-    HID_COLLECTION(HID_COLLECTION_APPLICATION),
+-    HID_REPORT_ID(ZMK_HID_REPORT_ID_CONSUMER),
++
++    HID_USAGE_PAGE(HID_USAGE_CONSUMER), HID_USAGE(HID_USAGE_CONSUMER_CONSUMER_CONTROL),
++    HID_COLLECTION(HID_COLLECTION_APPLICATION), HID_REPORT_ID(ZMK_HID_REPORT_ID_CONSUMER),
+     HID_USAGE_PAGE(HID_USAGE_CONSUMER),
+ 
+ #if IS_ENABLED(CONFIG_ZMK_HID_CONSUMER_REPORT_USAGES_BASIC)
+-    HID_LOGICAL_MIN8(0x00),
+-    HID_LOGICAL_MAX16(0xFF, 0x00),
+-    HID_USAGE_MIN8(0x00),
+-    HID_USAGE_MAX8(0xFF),
+-    HID_REPORT_SIZE(0x08),
++    HID_LOGICAL_MIN8(0x00), HID_LOGICAL_MAX16(0xFF, 0x00), HID_USAGE_MIN8(0x00),
++    HID_USAGE_MAX8(0xFF), HID_REPORT_SIZE(0x08),
+ #elif IS_ENABLED(CONFIG_ZMK_HID_CONSUMER_REPORT_USAGES_FULL)
+-    HID_LOGICAL_MIN8(0x00),
+-    HID_LOGICAL_MAX16(0xFF, 0x0F),
+-    HID_USAGE_MIN8(0x00),
+-    HID_USAGE_MAX16(0xFF, 0x0F),
+-    HID_REPORT_SIZE(0x10),
++    HID_LOGICAL_MIN8(0x00), HID_LOGICAL_MAX16(0xFF, 0x0F), HID_USAGE_MIN8(0x00),
++    HID_USAGE_MAX16(0xFF, 0x0F), HID_REPORT_SIZE(0x10),
+ #else
+ #error "A proper consumer HID report usage range must be selected"
+ #endif
+@@ -162,37 +150,75 @@ static const uint8_t zmk_hid_report_desc[] = {
+     HID_END_COLLECTION,
+ 
+ #if IS_ENABLED(CONFIG_ZMK_MOUSE)
+-    HID_USAGE_PAGE(HID_USAGE_GD),
+-    HID_USAGE(HID_USAGE_GD_MOUSE),
+-    HID_COLLECTION(HID_COLLECTION_APPLICATION),
+-    HID_REPORT_ID(ZMK_HID_REPORT_ID_MOUSE),
+-    HID_USAGE(HID_USAGE_GD_POINTER),
+-    HID_COLLECTION(HID_COLLECTION_PHYSICAL),
+-    HID_USAGE_PAGE(HID_USAGE_BUTTON),
+-    HID_USAGE_MIN8(0x1),
+-    HID_USAGE_MAX8(ZMK_HID_MOUSE_NUM_BUTTONS),
+-    HID_LOGICAL_MIN8(0x00),
+-    HID_LOGICAL_MAX8(0x01),
+-    HID_REPORT_SIZE(0x01),
+-    HID_REPORT_COUNT(0x5),
++    HID_USAGE_PAGE(HID_USAGE_GD), HID_USAGE(HID_USAGE_GD_MOUSE),
++    HID_COLLECTION(HID_COLLECTION_APPLICATION), HID_REPORT_ID(ZMK_HID_REPORT_ID_MOUSE),
++    HID_USAGE(HID_USAGE_GD_POINTER), HID_COLLECTION(HID_COLLECTION_PHYSICAL),
++    HID_USAGE_PAGE(HID_USAGE_BUTTON), HID_USAGE_MIN8(0x1),
++    HID_USAGE_MAX8(ZMK_HID_MOUSE_NUM_BUTTONS), HID_LOGICAL_MIN8(0x00), HID_LOGICAL_MAX8(0x01),
++    HID_REPORT_SIZE(0x01), HID_REPORT_COUNT(0x5),
+     HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+     // Constant padding for the last 3 bits.
+-    HID_REPORT_SIZE(0x03),
+-    HID_REPORT_COUNT(0x01),
++    HID_REPORT_SIZE(0x03), HID_REPORT_COUNT(0x01),
+     HID_INPUT(ZMK_HID_MAIN_VAL_CONST | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+     // Some OSes ignore pointer devices without X/Y data.
+-    HID_USAGE_PAGE(HID_USAGE_GEN_DESKTOP),
+-    HID_USAGE(HID_USAGE_GD_X),
+-    HID_USAGE(HID_USAGE_GD_Y),
+-    HID_USAGE(HID_USAGE_GD_WHEEL),
+-    HID_LOGICAL_MIN8(-0x7F),
+-    HID_LOGICAL_MAX8(0x7F),
+-    HID_REPORT_SIZE(0x08),
+-    HID_REPORT_COUNT(0x03),
++    HID_USAGE_PAGE(HID_USAGE_GEN_DESKTOP), HID_USAGE(HID_USAGE_GD_X), HID_USAGE(HID_USAGE_GD_Y),
++    HID_USAGE(HID_USAGE_GD_WHEEL), HID_LOGICAL_MIN8(-0x7F), HID_LOGICAL_MAX8(0x7F),
++    HID_REPORT_SIZE(0x08), HID_REPORT_COUNT(0x03),
+     HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_REL),
++    HID_END_COLLECTION, HID_END_COLLECTION,
++#endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
++
++    // my attempt
++    HID_USAGE_PAGE(HID_USAGE_GEN_DESKTOP),            // GEN DESKTOP PAGE
++    HID_USAGE(HID_USAGE_GD_SYSTEM_CONTROL),           // System control - Collection Application
++    HID_COLLECTION(HID_COLLECTION_APPLICATION),       // Start of System control collection
++    HID_REPORT_ID(ZMK_HID_REPORT_ID_GENERIC_DESKTOP), // Set UID
++
++    HID_USAGE(HID_USAGE_GD_SYSTEM_SLEEP), // System Sleep Usage
++
++    HID_USAGE_MIN8(HID_USAGE_GD_SYSTEM_POWER_DOWN),
++    HID_LOGICAL_MIN8(0x00), // Logical Minimum (Off)
++    HID_LOGICAL_MAX8(0x01), // Logical Maximum (On)
++    HID_REPORT_SIZE(0x01),  // Each field is 1 bit
++    HID_REPORT_COUNT(0x01), // One field for the sleep control
++    HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
++
++    HID_REPORT_SIZE(0x01),  // Each field is 1 bit
++    HID_REPORT_COUNT(0x07), // 7 bits of padding
++    HID_INPUT(ZMK_HID_MAIN_VAL_CONST | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+     HID_END_COLLECTION,
++    /*
++    HID_USAGE_PAGE(HID_USAGE_GEN_DESKTOP),              // Generic Desktop Page
++    HID_USAGE(HID_USAGE_GD_SYSTEM_CONTROL),             // System Control Collection
++    HID_COLLECTION(HID_COLLECTION_APPLICATION),         // Start of System control collection
++    HID_REPORT_ID(ZMK_HID_REPORT_ID_GENERIC_DESKTOP),   // Set Report ID
++
++    HID_USAGE(HID_USAGE_GD_SYSTEM_SLEEP),               // System Sleep Usage
++    HID_LOGICAL_MIN8(0x00),                             // Logical Minimum (Off)
++    HID_LOGICAL_MAX8(0x01),                             // Logical Maximum (On)
++    HID_REPORT_SIZE(0x01),                              // Each field is 1 bit
++    HID_REPORT_COUNT(0x01),                             // One field for the sleep control
++    HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
++
++    HID_REPORT_SIZE(0x07),                              // 7 bits of padding
++    HID_REPORT_COUNT(0x01),                             // One field of padding
++    HID_INPUT(ZMK_HID_MAIN_VAL_CONST | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+     HID_END_COLLECTION,
+-#endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
++
++    HID_INPUT(ZMK_HID_MAIN_VAL_CONST | ZMK_HID_MAIN_VAL_VAR |
++              ZMK_HID_MAIN_VAL_ABS), // Input field for reserved byte (Const, Variable, Absolute)
++
++    A One Shot Control is a push button that triggers a single event or action. A One Shot Control
++    is encoded into a 1-bit value and declared as a Relative, Preferred, Main item with a Logical
++    Minimum and Logical Maximum of 0 and 1, respectively. A 0 to 1 transition initiates an event.
++    Nothing occurs on a 1 to 0 transition but it is required before another event can occur. An
++    example is degauss
++
++    Generic Desktop Page
++    81 System Power Down OSC 4.5
++    82 System Sleep OSC 4.5
++    83 System Wake Up OSC 4.5
++    */
+ };
+ 
+ #if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+@@ -229,6 +255,15 @@ struct zmk_hid_keyboard_report {
+     struct zmk_hid_keyboard_report_body body;
+ } __packed;
+ 
++struct zmk_hid_generic_desktop_report_body {
++    uint8_t data;
++} __packed;
++
++struct zmk_hid_generic_desktop_report {
++    uint8_t report_id;
++    struct zmk_hid_generic_desktop_report_body body;
++} __packed;
++
+ #if IS_ENABLED(CONFIG_ZMK_HID_INDICATORS)
+ 
+ struct zmk_hid_led_report_body {
+@@ -290,6 +325,7 @@ bool zmk_hid_keyboard_is_pressed(zmk_key_t key);
+ int zmk_hid_consumer_press(zmk_key_t key);
+ int zmk_hid_consumer_release(zmk_key_t key);
+ void zmk_hid_consumer_clear(void);
++void zmk_hid_generic_desktop_clear(void);
+ bool zmk_hid_consumer_is_pressed(zmk_key_t key);
+ 
+ int zmk_hid_press(uint32_t usage);
+@@ -306,6 +342,7 @@ void zmk_hid_mouse_clear(void);
+ 
+ struct zmk_hid_keyboard_report *zmk_hid_get_keyboard_report(void);
+ struct zmk_hid_consumer_report *zmk_hid_get_consumer_report(void);
++struct zmk_hid_generic_desktop_report *zmk_hid_get_generic_desktop_report(void);
+ 
+ #if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+ zmk_hid_boot_report_t *zmk_hid_get_boot_report();
+diff --git a/app/include/zmk/usb_hid.h b/app/include/zmk/usb_hid.h
+index c0cbc08a7ad..e1dc1577c3f 100644
+--- a/app/include/zmk/usb_hid.h
++++ b/app/include/zmk/usb_hid.h
+@@ -10,6 +10,7 @@
+ 
+ int zmk_usb_hid_send_keyboard_report(void);
+ int zmk_usb_hid_send_consumer_report(void);
++int zmk_usb_hid_send_generic_desktop_report(void);
+ #if IS_ENABLED(CONFIG_ZMK_MOUSE)
+ int zmk_usb_hid_send_mouse_report(void);
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+diff --git a/app/src/endpoints.c b/app/src/endpoints.c
+index 652438531f0..9121ebbb813 100644
+--- a/app/src/endpoints.c
++++ b/app/src/endpoints.c
+@@ -188,6 +188,31 @@ static int send_consumer_report(void) {
+     return -ENOTSUP;
+ }
+ 
++static int send_generic_desktop_report(void) {
++    switch (current_instance.transport) {
++    case ZMK_TRANSPORT_USB: {
++#if IS_ENABLED(CONFIG_ZMK_USB)
++        int err = zmk_usb_hid_send_generic_desktop_report();
++        if (err) {
++            LOG_ERR("FAILED TO SEND OVER USB: %d", err);
++        }
++        return err;
++#else
++        LOG_ERR("USB endpoint is not supported");
++        return -ENOTSUP;
++#endif /* IS_ENABLED(CONFIG_ZMK_USB) */
++    }
++
++    case ZMK_TRANSPORT_BLE: {
++        LOG_ERR("BLE HOG endpoint is not supported");
++        return -ENOTSUP;
++    }
++    }
++
++    LOG_ERR("Unhandled endpoint transport %d", current_instance.transport);
++    return -ENOTSUP;
++}
++
+ int zmk_endpoints_send_report(uint16_t usage_page) {
+ 
+     LOG_DBG("usage page 0x%02X", usage_page);
+@@ -197,6 +222,9 @@ int zmk_endpoints_send_report(uint16_t usage_page) {
+ 
+     case HID_USAGE_CONSUMER:
+         return send_consumer_report();
++
++    case HID_USAGE_GD:
++        return send_generic_desktop_report();
+     }
+ 
+     LOG_ERR("Unsupported usage page %d", usage_page);
+@@ -334,6 +362,7 @@ static int zmk_endpoints_init(void) {
+ void zmk_endpoints_clear_current(void) {
+     zmk_hid_keyboard_clear();
+     zmk_hid_consumer_clear();
++    zmk_hid_generic_desktop_clear();
+ #if IS_ENABLED(CONFIG_ZMK_MOUSE)
+     zmk_hid_mouse_clear();
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+diff --git a/app/src/hid.c b/app/src/hid.c
+index 24572ad325b..1ee3e498edb 100644
+--- a/app/src/hid.c
++++ b/app/src/hid.c
+@@ -18,6 +18,9 @@ static struct zmk_hid_keyboard_report keyboard_report = {
+ static struct zmk_hid_consumer_report consumer_report = {.report_id = ZMK_HID_REPORT_ID_CONSUMER,
+                                                          .body = {.keys = {0}}};
+ 
++static struct zmk_hid_generic_desktop_report generic_desktop_report = {
++    .report_id = ZMK_HID_REPORT_ID_GENERIC_DESKTOP, .body = {.data = 0}};
++
+ #if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+ 
+ static zmk_hid_boot_report_t boot_report = {.modifiers = 0, ._reserved = 0, .keys = {0}};
+@@ -340,12 +343,37 @@ bool zmk_hid_consumer_is_pressed(zmk_key_t key) {
+     return false;
+ }
+ 
++int my_pressed = 0;
++int zmk_hid_generic_desktop_press(zmk_key_t code) {
++    LOG_DBG("Code 0x%02X pressed", code);
++    generic_desktop_report.body.data = 0xFF;
++
++    return 0;
++}
++
++int zmk_hid_generic_desktop_release(zmk_key_t code) {
++    LOG_DBG("Code 0x%02X released", code);
++    generic_desktop_report.body.data = 0x00;
++
++    return 0;
++}
++
++void zmk_hid_generic_desktop_clear(void) {
++    memset(&generic_desktop_report.body, 0, sizeof(generic_desktop_report.body));
++}
++
++bool zmk_hid_generic_desktop_is_pressed(zmk_key_t code) {
++    return generic_desktop_report.body.data == 0xFF;
++}
++
+ int zmk_hid_press(uint32_t usage) {
+     switch (ZMK_HID_USAGE_PAGE(usage)) {
+     case HID_USAGE_KEY:
+         return zmk_hid_keyboard_press(ZMK_HID_USAGE_ID(usage));
+     case HID_USAGE_CONSUMER:
+         return zmk_hid_consumer_press(ZMK_HID_USAGE_ID(usage));
++    case HID_USAGE_GD:
++        return zmk_hid_generic_desktop_press(ZMK_HID_USAGE_ID(usage));
+     }
+     return -EINVAL;
+ }
+@@ -356,6 +384,8 @@ int zmk_hid_release(uint32_t usage) {
+         return zmk_hid_keyboard_release(ZMK_HID_USAGE_ID(usage));
+     case HID_USAGE_CONSUMER:
+         return zmk_hid_consumer_release(ZMK_HID_USAGE_ID(usage));
++    case HID_USAGE_GD:
++        return zmk_hid_generic_desktop_release(ZMK_HID_USAGE_ID(usage));
+     }
+     return -EINVAL;
+ }
+@@ -366,6 +396,8 @@ bool zmk_hid_is_pressed(uint32_t usage) {
+         return zmk_hid_keyboard_is_pressed(ZMK_HID_USAGE_ID(usage));
+     case HID_USAGE_CONSUMER:
+         return zmk_hid_consumer_is_pressed(ZMK_HID_USAGE_ID(usage));
++    case HID_USAGE_GD:
++        return zmk_hid_consumer_is_pressed(ZMK_HID_USAGE_ID(usage));
+     }
+     return false;
+ }
+@@ -443,6 +475,10 @@ struct zmk_hid_consumer_report *zmk_hid_get_consumer_report(void) {
+     return &consumer_report;
+ }
+ 
++struct zmk_hid_generic_desktop_report *zmk_hid_get_generic_desktop_report(void) {
++    return &generic_desktop_report;
++}
++
+ #if IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
+ struct zmk_hid_mouse_report *zmk_hid_get_mouse_report(void) {
+diff --git a/app/src/usb_hid.c b/app/src/usb_hid.c
+index 9db10952c95..40241efcd80 100644
+--- a/app/src/usb_hid.c
++++ b/app/src/usb_hid.c
+@@ -164,6 +164,16 @@ int zmk_usb_hid_send_consumer_report(void) {
+     return zmk_usb_hid_send_report((uint8_t *)report, sizeof(*report));
+ }
+ 
++int zmk_usb_hid_send_generic_desktop_report(void) {
++#if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
++    if (hid_protocol == HID_PROTOCOL_BOOT) {
++        return -ENOTSUP;
++    }
++#endif /* IS_ENABLED(CONFIG_ZMK_USB_BOOT) */
++    struct zmk_hid_generic_desktop_report *report = zmk_hid_get_generic_desktop_report();
++    return zmk_usb_hid_send_report((uint8_t *)report, sizeof(*report));
++}
++
+ #if IS_ENABLED(CONFIG_ZMK_MOUSE)
+ int zmk_usb_hid_send_mouse_report() {
+ #if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+
+From 25cb978af85cc541a60085f87ca4b6f27479b0c8 Mon Sep 17 00:00:00 2001
+From: angweekiat <weekiatah@gmail.com>
+Date: Sun, 8 Sep 2024 23:48:45 +0800
+Subject: [PATCH 02/10] Can send power commands
+
+---
+ app/include/dt-bindings/zmk/keys.h | 40 ++++++++++++++++++++++++++++++
+ app/include/zmk/hid.h              | 11 ++++----
+ app/src/hid.c                      | 34 +++++++++++++------------
+ 3 files changed, 63 insertions(+), 22 deletions(-)
+
+diff --git a/app/include/dt-bindings/zmk/keys.h b/app/include/dt-bindings/zmk/keys.h
+index 364ffa8647a..d990e438219 100644
+--- a/app/include/dt-bindings/zmk/keys.h
++++ b/app/include/dt-bindings/zmk/keys.h
+@@ -21,6 +21,46 @@
+ #define SYSTEM_WAKE_UP (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_WAKE_UP))
+ #define SYS_WAKE (SYSTEM_WAKE_UP)
+ 
++/* System Context Menu */
++#define SYSTEM_CONTEXT_MENU (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_CONTEXT_MENU))
++#define SYS_CONTEXT_MENU (SYSTEM_CONTEXT_MENU)
++
++/* System Main Menu */
++#define SYSTEM_MAIN_MENU (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_MAIN_MENU))
++#define SYS_MAIN_MENU (SYSTEM_MAIN_MENU)
++
++/* System App Menu */
++#define SYSTEM_APP_MENU (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_APP_MENU))
++#define SYS_APP_MENU (SYSTEM_APP_MENU)
++
++/* System Menu Help */
++#define SYSTEM_MENU_HELP (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_MENU_HELP))
++#define SYS_MENU_HELP (SYSTEM_MENU_HELP)
++
++/* System Menu Exit */
++#define SYSTEM_MENU_EXIT (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_MENU_EXIT))
++#define SYS_MENU_EXIT (SYSTEM_MENU_EXIT)
++
++/* System Menu Select */
++#define SYSTEM_MENU_SELECT (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_MENU_SELECT))
++#define SYS_MENU_SELECT (SYSTEM_MENU_SELECT)
++
++/* System Main Right */
++#define SYSTEM_MENU_RIGHT (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_MENU_RIGHT))
++#define SYS_MENU_RIGHT (SYSTEM_MENU_RIGHT)
++
++/* System Menu Left */
++#define SYSTEM_MENU_LEFT (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_MENU_LEFT))
++#define SYS_MENU_LEFT (SYSTEM_MENU_LEFT)
++
++/* System Main Up */
++#define SYSTEM_MENU_UP (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_MENU_UP))
++#define SYS_MENU_UP (SYSTEM_MENU_UP)
++
++/* System Menu Down */
++#define SYSTEM_MENU_DOWN (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_MENU_DOWN))
++#define SYS_MENU_DONW (SYSTEM_MENU_DOWN)
++
+ /* Keyboard a and A */
+ #define A (ZMK_HID_USAGE(HID_USAGE_KEY, HID_USAGE_KEY_KEYBOARD_A))
+ 
+diff --git a/app/include/zmk/hid.h b/app/include/zmk/hid.h
+index b4521607e3b..0288aa71822 100644
+--- a/app/include/zmk/hid.h
++++ b/app/include/zmk/hid.h
+@@ -174,17 +174,16 @@ static const uint8_t zmk_hid_report_desc[] = {
+     HID_COLLECTION(HID_COLLECTION_APPLICATION),       // Start of System control collection
+     HID_REPORT_ID(ZMK_HID_REPORT_ID_GENERIC_DESKTOP), // Set UID
+ 
+-    HID_USAGE(HID_USAGE_GD_SYSTEM_SLEEP), // System Sleep Usage
+-
+     HID_USAGE_MIN8(HID_USAGE_GD_SYSTEM_POWER_DOWN),
++    HID_USAGE_MAX8(HID_USAGE_GD_SYSTEM_CONTEXT_MENU),
+     HID_LOGICAL_MIN8(0x00), // Logical Minimum (Off)
+     HID_LOGICAL_MAX8(0x01), // Logical Maximum (On)
+     HID_REPORT_SIZE(0x01),  // Each field is 1 bit
+-    HID_REPORT_COUNT(0x01), // One field for the sleep control
++    HID_REPORT_COUNT(0x04), // 4 fields
+     HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+ 
+-    HID_REPORT_SIZE(0x01),  // Each field is 1 bit
+-    HID_REPORT_COUNT(0x07), // 7 bits of padding
++    HID_REPORT_SIZE(0x03),  // Each field is 3 bit
++    HID_REPORT_COUNT(0x01), // 1 field of padding
+     HID_INPUT(ZMK_HID_MAIN_VAL_CONST | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+     HID_END_COLLECTION,
+     /*
+@@ -256,7 +255,7 @@ struct zmk_hid_keyboard_report {
+ } __packed;
+ 
+ struct zmk_hid_generic_desktop_report_body {
+-    uint8_t data;
++    uint8_t keys[2];
+ } __packed;
+ 
+ struct zmk_hid_generic_desktop_report {
+diff --git a/app/src/hid.c b/app/src/hid.c
+index 1ee3e498edb..e90d46b504a 100644
+--- a/app/src/hid.c
++++ b/app/src/hid.c
+@@ -19,7 +19,7 @@ static struct zmk_hid_consumer_report consumer_report = {.report_id = ZMK_HID_RE
+                                                          .body = {.keys = {0}}};
+ 
+ static struct zmk_hid_generic_desktop_report generic_desktop_report = {
+-    .report_id = ZMK_HID_REPORT_ID_GENERIC_DESKTOP, .body = {.data = 0}};
++    .report_id = ZMK_HID_REPORT_ID_GENERIC_DESKTOP, .body = {.keys = {0}}};
+ 
+ #if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+ 
+@@ -345,15 +345,22 @@ bool zmk_hid_consumer_is_pressed(zmk_key_t key) {
+ 
+ int my_pressed = 0;
+ int zmk_hid_generic_desktop_press(zmk_key_t code) {
+-    LOG_DBG("Code 0x%02X pressed", code);
+-    generic_desktop_report.body.data = 0xFF;
++    int32_t offset = code - HID_USAGE_GD_SYSTEM_POWER_DOWN;
++    LOG_DBG("Code 0x%02X pressed, offset 0x%02X", code, offset);
++    WRITE_BIT(generic_desktop_report.body.keys[offset / 8], offset % 8, 1);
+ 
++    // generic_desktop_report.body.keys[0] = 0x00;
++    // generic_desktop_report.body.keys[1] = 0x20;
+     return 0;
+ }
+ 
+ int zmk_hid_generic_desktop_release(zmk_key_t code) {
+-    LOG_DBG("Code 0x%02X released", code);
+-    generic_desktop_report.body.data = 0x00;
++    int32_t offset = code - HID_USAGE_GD_SYSTEM_POWER_DOWN;
++    LOG_DBG("Code 0x%02X released, offset 0x%02X", code, offset);
++    WRITE_BIT(generic_desktop_report.body.keys[offset / 8], offset % 8, 0);
++
++    // generic_desktop_report.body.keys[0] = 0x00;
++    // generic_desktop_report.body.keys[1] = 0x00;
+ 
+     return 0;
+ }
+@@ -363,7 +370,8 @@ void zmk_hid_generic_desktop_clear(void) {
+ }
+ 
+ bool zmk_hid_generic_desktop_is_pressed(zmk_key_t code) {
+-    return generic_desktop_report.body.data == 0xFF;
++    int32_t offset = code - HID_USAGE_GD_SYSTEM_POWER_DOWN;
++    return generic_desktop_report.body.keys[offset / 8] & (1 << (offset % 8));
+ }
+ 
+ int zmk_hid_press(uint32_t usage) {
+@@ -397,7 +405,7 @@ bool zmk_hid_is_pressed(uint32_t usage) {
+     case HID_USAGE_CONSUMER:
+         return zmk_hid_consumer_is_pressed(ZMK_HID_USAGE_ID(usage));
+     case HID_USAGE_GD:
+-        return zmk_hid_consumer_is_pressed(ZMK_HID_USAGE_ID(usage));
++        return zmk_hid_generic_desktop_is_pressed(ZMK_HID_USAGE_ID(usage));
+     }
+     return false;
+ }
+@@ -467,13 +475,9 @@ void zmk_hid_mouse_clear(void) { memset(&mouse_report.body, 0, sizeof(mouse_repo
+ 
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
+-struct zmk_hid_keyboard_report *zmk_hid_get_keyboard_report(void) {
+-    return &keyboard_report;
+-}
++struct zmk_hid_keyboard_report *zmk_hid_get_keyboard_report(void) { return &keyboard_report; }
+ 
+-struct zmk_hid_consumer_report *zmk_hid_get_consumer_report(void) {
+-    return &consumer_report;
+-}
++struct zmk_hid_consumer_report *zmk_hid_get_consumer_report(void) { return &consumer_report; }
+ 
+ struct zmk_hid_generic_desktop_report *zmk_hid_get_generic_desktop_report(void) {
+     return &generic_desktop_report;
+@@ -481,8 +485,6 @@ struct zmk_hid_generic_desktop_report *zmk_hid_get_generic_desktop_report(void)
+ 
+ #if IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
+-struct zmk_hid_mouse_report *zmk_hid_get_mouse_report(void) {
+-    return &mouse_report;
+-}
++struct zmk_hid_mouse_report *zmk_hid_get_mouse_report(void) { return &mouse_report; }
+ 
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+
+From 7c9daa283043e48b1cfee3b2eb7a530fdd46d6b3 Mon Sep 17 00:00:00 2001
+From: angweekiat <weekiatah@gmail.com>
+Date: Mon, 9 Sep 2024 12:37:16 +0800
+Subject: [PATCH 03/10] works for 3 keys
+
+---
+ app/include/zmk/hid.h | 140 +++++++++++++++++++++---------------------
+ 1 file changed, 71 insertions(+), 69 deletions(-)
+
+diff --git a/app/include/zmk/hid.h b/app/include/zmk/hid.h
+index 0288aa71822..c1aa802c963 100644
+--- a/app/include/zmk/hid.h
++++ b/app/include/zmk/hid.h
+@@ -87,8 +87,10 @@ static const uint8_t zmk_hid_report_desc[] = {
+     HID_REPORT_ID(ZMK_HID_REPORT_ID_KEYBOARD),  // 0x01 Set zmk id, doesn't matter
+ 
+     // Modifier keys // [ Account for 1st byte in report ]
+-    HID_USAGE_PAGE(HID_USAGE_KEY), HID_USAGE_MIN8(HID_USAGE_KEY_KEYBOARD_LEFTCONTROL),
+-    HID_USAGE_MAX8(HID_USAGE_KEY_KEYBOARD_RIGHT_GUI), HID_LOGICAL_MIN8(0x00),
++    HID_USAGE_PAGE(HID_USAGE_KEY),
++    HID_USAGE_MIN8(HID_USAGE_KEY_KEYBOARD_LEFTCONTROL),
++    HID_USAGE_MAX8(HID_USAGE_KEY_KEYBOARD_RIGHT_GUI),
++    HID_LOGICAL_MIN8(0x00),
+     HID_LOGICAL_MAX8(0x01),
+     HID_REPORT_SIZE(0x01),  // Number of bits in 1 field (1)
+     HID_REPORT_COUNT(0x08), // Number of data fields included in the report (8), so 8x1bits = 1 byte
+@@ -105,11 +107,16 @@ static const uint8_t zmk_hid_report_desc[] = {
+ 
+ #if IS_ENABLED(CONFIG_ZMK_HID_INDICATORS)
+ 
+-    HID_USAGE_PAGE(HID_USAGE_LED), HID_USAGE_MIN8(HID_USAGE_LED_NUM_LOCK),
+-    HID_USAGE_MAX8(HID_USAGE_LED_KANA), HID_REPORT_SIZE(0x01), HID_REPORT_COUNT(0x05),
++    HID_USAGE_PAGE(HID_USAGE_LED),
++    HID_USAGE_MIN8(HID_USAGE_LED_NUM_LOCK),
++    HID_USAGE_MAX8(HID_USAGE_LED_KANA),
++    HID_REPORT_SIZE(0x01),
++    HID_REPORT_COUNT(0x05),
+     HID_OUTPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+ 
+-    HID_USAGE_PAGE(HID_USAGE_LED), HID_REPORT_SIZE(0x03), HID_REPORT_COUNT(0x01),
++    HID_USAGE_PAGE(HID_USAGE_LED),
++    HID_REPORT_SIZE(0x03),
++    HID_REPORT_COUNT(0x01),
+     HID_OUTPUT(ZMK_HID_MAIN_VAL_CONST | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+ 
+ #endif // IS_ENABLED(CONFIG_ZMK_HID_INDICATORS)
+@@ -117,13 +124,19 @@ static const uint8_t zmk_hid_report_desc[] = {
+     HID_USAGE_PAGE(HID_USAGE_KEY),
+ 
+ #if IS_ENABLED(CONFIG_ZMK_HID_REPORT_TYPE_NKRO)
+-    HID_LOGICAL_MIN8(0x00), HID_LOGICAL_MAX8(0x01), HID_USAGE_MIN8(0x00),
+-    HID_USAGE_MAX8(ZMK_HID_KEYBOARD_NKRO_MAX_USAGE), HID_REPORT_SIZE(0x01),
++    HID_LOGICAL_MIN8(0x00),
++    HID_LOGICAL_MAX8(0x01),
++    HID_USAGE_MIN8(0x00),
++    HID_USAGE_MAX8(ZMK_HID_KEYBOARD_NKRO_MAX_USAGE),
++    HID_REPORT_SIZE(0x01),
+     HID_REPORT_COUNT(ZMK_HID_KEYBOARD_NKRO_MAX_USAGE + 1),
+     HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+ #elif IS_ENABLED(CONFIG_ZMK_HID_REPORT_TYPE_HKRO)
+-    HID_LOGICAL_MIN8(0x00), HID_LOGICAL_MAX16(0xFF, 0x00), HID_USAGE_MIN8(0x00),
+-    HID_USAGE_MAX8(0xFF), HID_REPORT_SIZE(0x08),
++    HID_LOGICAL_MIN8(0x00),
++    HID_LOGICAL_MAX16(0xFF, 0x00),
++    HID_USAGE_MIN8(0x00),
++    HID_USAGE_MAX8(0xFF),
++    HID_REPORT_SIZE(0x08),
+     HID_REPORT_COUNT(CONFIG_ZMK_HID_KEYBOARD_REPORT_SIZE),
+     HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_ARRAY | ZMK_HID_MAIN_VAL_ABS),
+ #else
+@@ -132,16 +145,24 @@ static const uint8_t zmk_hid_report_desc[] = {
+ 
+     HID_END_COLLECTION,
+ 
+-    HID_USAGE_PAGE(HID_USAGE_CONSUMER), HID_USAGE(HID_USAGE_CONSUMER_CONSUMER_CONTROL),
+-    HID_COLLECTION(HID_COLLECTION_APPLICATION), HID_REPORT_ID(ZMK_HID_REPORT_ID_CONSUMER),
++    HID_USAGE_PAGE(HID_USAGE_CONSUMER),
++    HID_USAGE(HID_USAGE_CONSUMER_CONSUMER_CONTROL),
++    HID_COLLECTION(HID_COLLECTION_APPLICATION),
++    HID_REPORT_ID(ZMK_HID_REPORT_ID_CONSUMER),
+     HID_USAGE_PAGE(HID_USAGE_CONSUMER),
+ 
+ #if IS_ENABLED(CONFIG_ZMK_HID_CONSUMER_REPORT_USAGES_BASIC)
+-    HID_LOGICAL_MIN8(0x00), HID_LOGICAL_MAX16(0xFF, 0x00), HID_USAGE_MIN8(0x00),
+-    HID_USAGE_MAX8(0xFF), HID_REPORT_SIZE(0x08),
++    HID_LOGICAL_MIN8(0x00),
++    HID_LOGICAL_MAX16(0xFF, 0x00),
++    HID_USAGE_MIN8(0x00),
++    HID_USAGE_MAX8(0xFF),
++    HID_REPORT_SIZE(0x08),
+ #elif IS_ENABLED(CONFIG_ZMK_HID_CONSUMER_REPORT_USAGES_FULL)
+-    HID_LOGICAL_MIN8(0x00), HID_LOGICAL_MAX16(0xFF, 0x0F), HID_USAGE_MIN8(0x00),
+-    HID_USAGE_MAX16(0xFF, 0x0F), HID_REPORT_SIZE(0x10),
++    HID_LOGICAL_MIN8(0x00),
++    HID_LOGICAL_MAX16(0xFF, 0x0F),
++    HID_USAGE_MIN8(0x00),
++    HID_USAGE_MAX16(0xFF, 0x0F),
++    HID_REPORT_SIZE(0x10),
+ #else
+ #error "A proper consumer HID report usage range must be selected"
+ #endif
+@@ -150,74 +171,55 @@ static const uint8_t zmk_hid_report_desc[] = {
+     HID_END_COLLECTION,
+ 
+ #if IS_ENABLED(CONFIG_ZMK_MOUSE)
+-    HID_USAGE_PAGE(HID_USAGE_GD), HID_USAGE(HID_USAGE_GD_MOUSE),
+-    HID_COLLECTION(HID_COLLECTION_APPLICATION), HID_REPORT_ID(ZMK_HID_REPORT_ID_MOUSE),
+-    HID_USAGE(HID_USAGE_GD_POINTER), HID_COLLECTION(HID_COLLECTION_PHYSICAL),
+-    HID_USAGE_PAGE(HID_USAGE_BUTTON), HID_USAGE_MIN8(0x1),
+-    HID_USAGE_MAX8(ZMK_HID_MOUSE_NUM_BUTTONS), HID_LOGICAL_MIN8(0x00), HID_LOGICAL_MAX8(0x01),
+-    HID_REPORT_SIZE(0x01), HID_REPORT_COUNT(0x5),
++    HID_USAGE_PAGE(HID_USAGE_GD),
++    HID_USAGE(HID_USAGE_GD_MOUSE),
++    HID_COLLECTION(HID_COLLECTION_APPLICATION),
++    HID_REPORT_ID(ZMK_HID_REPORT_ID_MOUSE),
++    HID_USAGE(HID_USAGE_GD_POINTER),
++    HID_COLLECTION(HID_COLLECTION_PHYSICAL),
++    HID_USAGE_PAGE(HID_USAGE_BUTTON),
++    HID_USAGE_MIN8(0x1),
++    HID_USAGE_MAX8(ZMK_HID_MOUSE_NUM_BUTTONS),
++    HID_LOGICAL_MIN8(0x00),
++    HID_LOGICAL_MAX8(0x01),
++    HID_REPORT_SIZE(0x01),
++    HID_REPORT_COUNT(0x5),
+     HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+     // Constant padding for the last 3 bits.
+-    HID_REPORT_SIZE(0x03), HID_REPORT_COUNT(0x01),
++    HID_REPORT_SIZE(0x03),
++    HID_REPORT_COUNT(0x01),
+     HID_INPUT(ZMK_HID_MAIN_VAL_CONST | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+     // Some OSes ignore pointer devices without X/Y data.
+-    HID_USAGE_PAGE(HID_USAGE_GEN_DESKTOP), HID_USAGE(HID_USAGE_GD_X), HID_USAGE(HID_USAGE_GD_Y),
+-    HID_USAGE(HID_USAGE_GD_WHEEL), HID_LOGICAL_MIN8(-0x7F), HID_LOGICAL_MAX8(0x7F),
+-    HID_REPORT_SIZE(0x08), HID_REPORT_COUNT(0x03),
++    HID_USAGE_PAGE(HID_USAGE_GEN_DESKTOP),
++    HID_USAGE(HID_USAGE_GD_X),
++    HID_USAGE(HID_USAGE_GD_Y),
++    HID_USAGE(HID_USAGE_GD_WHEEL),
++    HID_LOGICAL_MIN8(-0x7F),
++    HID_LOGICAL_MAX8(0x7F),
++    HID_REPORT_SIZE(0x08),
++    HID_REPORT_COUNT(0x03),
+     HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_REL),
+-    HID_END_COLLECTION, HID_END_COLLECTION,
++    HID_END_COLLECTION,
++    HID_END_COLLECTION,
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
+-    // my attempt
+-    HID_USAGE_PAGE(HID_USAGE_GEN_DESKTOP),            // GEN DESKTOP PAGE
+-    HID_USAGE(HID_USAGE_GD_SYSTEM_CONTROL),           // System control - Collection Application
+-    HID_COLLECTION(HID_COLLECTION_APPLICATION),       // Start of System control collection
+-    HID_REPORT_ID(ZMK_HID_REPORT_ID_GENERIC_DESKTOP), // Set UID
++    HID_USAGE_PAGE(HID_USAGE_GEN_DESKTOP),
++    HID_USAGE(HID_USAGE_GD_SYSTEM_CONTROL),
++    HID_COLLECTION(HID_COLLECTION_APPLICATION),
++    HID_REPORT_ID(ZMK_HID_REPORT_ID_GENERIC_DESKTOP),
+ 
+     HID_USAGE_MIN8(HID_USAGE_GD_SYSTEM_POWER_DOWN),
+     HID_USAGE_MAX8(HID_USAGE_GD_SYSTEM_CONTEXT_MENU),
+-    HID_LOGICAL_MIN8(0x00), // Logical Minimum (Off)
+-    HID_LOGICAL_MAX8(0x01), // Logical Maximum (On)
+-    HID_REPORT_SIZE(0x01),  // Each field is 1 bit
+-    HID_REPORT_COUNT(0x04), // 4 fields
+-    HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+-
+-    HID_REPORT_SIZE(0x03),  // Each field is 3 bit
+-    HID_REPORT_COUNT(0x01), // 1 field of padding
+-    HID_INPUT(ZMK_HID_MAIN_VAL_CONST | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+-    HID_END_COLLECTION,
+-    /*
+-    HID_USAGE_PAGE(HID_USAGE_GEN_DESKTOP),              // Generic Desktop Page
+-    HID_USAGE(HID_USAGE_GD_SYSTEM_CONTROL),             // System Control Collection
+-    HID_COLLECTION(HID_COLLECTION_APPLICATION),         // Start of System control collection
+-    HID_REPORT_ID(ZMK_HID_REPORT_ID_GENERIC_DESKTOP),   // Set Report ID
+-
+-    HID_USAGE(HID_USAGE_GD_SYSTEM_SLEEP),               // System Sleep Usage
+-    HID_LOGICAL_MIN8(0x00),                             // Logical Minimum (Off)
+-    HID_LOGICAL_MAX8(0x01),                             // Logical Maximum (On)
+-    HID_REPORT_SIZE(0x01),                              // Each field is 1 bit
+-    HID_REPORT_COUNT(0x01),                             // One field for the sleep control
++    HID_LOGICAL_MIN8(0x00),
++    HID_LOGICAL_MAX8(0x01),
++    HID_REPORT_SIZE(0x01),
++    HID_REPORT_COUNT(0x04),
+     HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+ 
+-    HID_REPORT_SIZE(0x07),                              // 7 bits of padding
+-    HID_REPORT_COUNT(0x01),                             // One field of padding
++    HID_REPORT_SIZE(0x03),
++    HID_REPORT_COUNT(0x01),
+     HID_INPUT(ZMK_HID_MAIN_VAL_CONST | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+     HID_END_COLLECTION,
+-
+-    HID_INPUT(ZMK_HID_MAIN_VAL_CONST | ZMK_HID_MAIN_VAL_VAR |
+-              ZMK_HID_MAIN_VAL_ABS), // Input field for reserved byte (Const, Variable, Absolute)
+-
+-    A One Shot Control is a push button that triggers a single event or action. A One Shot Control
+-    is encoded into a 1-bit value and declared as a Relative, Preferred, Main item with a Logical
+-    Minimum and Logical Maximum of 0 and 1, respectively. A 0 to 1 transition initiates an event.
+-    Nothing occurs on a 1 to 0 transition but it is required before another event can occur. An
+-    example is degauss
+-
+-    Generic Desktop Page
+-    81 System Power Down OSC 4.5
+-    82 System Sleep OSC 4.5
+-    83 System Wake Up OSC 4.5
+-    */
+ };
+ 
+ #if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+
+From d075950810356ac272ef1e7f4b9a3f2f52a930dc Mon Sep 17 00:00:00 2001
+From: angweekiat <weekiatah@gmail.com>
+Date: Mon, 9 Sep 2024 23:45:04 +0800
+Subject: [PATCH 04/10] shifted to config. ble WIP
+
+---
+ app/Kconfig               |  6 ++++++
+ app/include/zmk/hid.h     | 20 ++++++++++++-----
+ app/include/zmk/hog.h     |  4 ++++
+ app/include/zmk/usb_hid.h |  4 ++++
+ app/src/endpoints.c       | 22 +++++++++++++++----
+ app/src/hid.c             | 45 +++++++++++++++++++++++++--------------
+ app/src/hog.c             |  6 ++++++
+ app/src/usb_hid.c         | 16 ++++++++------
+ 8 files changed, 91 insertions(+), 32 deletions(-)
+
+diff --git a/app/Kconfig b/app/Kconfig
+index 108fcbe7096..f91a991a091 100644
+--- a/app/Kconfig
++++ b/app/Kconfig
+@@ -119,6 +119,12 @@ config ZMK_HID_SEPARATE_MOD_RELEASE_REPORT
+       Send a separate release event for the modifiers, to make sure the release
+       of the modifier doesn't get recognized before the actual key's release event.
+ 
++config ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS
++    bool "Power-related Generic Desktop HID Usage Support"
++    help
++      Enable only 3 Generic Desktop ID values, "Power Down", "Sleep", "Wake up", to be
++      sent to hosts.
++
+ menu "Output Types"
+ 
+ config ZMK_USB
+diff --git a/app/include/zmk/hid.h b/app/include/zmk/hid.h
+index c1aa802c963..dcd76a64e4f 100644
+--- a/app/include/zmk/hid.h
++++ b/app/include/zmk/hid.h
+@@ -203,23 +203,25 @@ static const uint8_t zmk_hid_report_desc[] = {
+     HID_END_COLLECTION,
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+     HID_USAGE_PAGE(HID_USAGE_GEN_DESKTOP),
+     HID_USAGE(HID_USAGE_GD_SYSTEM_CONTROL),
+     HID_COLLECTION(HID_COLLECTION_APPLICATION),
+     HID_REPORT_ID(ZMK_HID_REPORT_ID_GENERIC_DESKTOP),
+ 
+     HID_USAGE_MIN8(HID_USAGE_GD_SYSTEM_POWER_DOWN),
+-    HID_USAGE_MAX8(HID_USAGE_GD_SYSTEM_CONTEXT_MENU),
++    HID_USAGE_MAX8(HID_USAGE_GD_SYSTEM_WAKE_UP),
+     HID_LOGICAL_MIN8(0x00),
+     HID_LOGICAL_MAX8(0x01),
+     HID_REPORT_SIZE(0x01),
+-    HID_REPORT_COUNT(0x04),
++    HID_REPORT_COUNT(0x03),
+     HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+ 
+-    HID_REPORT_SIZE(0x03),
++    HID_REPORT_SIZE(0x05),
+     HID_REPORT_COUNT(0x01),
+     HID_INPUT(ZMK_HID_MAIN_VAL_CONST | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+     HID_END_COLLECTION,
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+ };
+ 
+ #if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+@@ -256,14 +258,16 @@ struct zmk_hid_keyboard_report {
+     struct zmk_hid_keyboard_report_body body;
+ } __packed;
+ 
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+ struct zmk_hid_generic_desktop_report_body {
+-    uint8_t keys[2];
++    uint8_t keys;
+ } __packed;
+ 
+ struct zmk_hid_generic_desktop_report {
+     uint8_t report_id;
+     struct zmk_hid_generic_desktop_report_body body;
+ } __packed;
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+ 
+ #if IS_ENABLED(CONFIG_ZMK_HID_INDICATORS)
+ 
+@@ -326,7 +330,6 @@ bool zmk_hid_keyboard_is_pressed(zmk_key_t key);
+ int zmk_hid_consumer_press(zmk_key_t key);
+ int zmk_hid_consumer_release(zmk_key_t key);
+ void zmk_hid_consumer_clear(void);
+-void zmk_hid_generic_desktop_clear(void);
+ bool zmk_hid_consumer_is_pressed(zmk_key_t key);
+ 
+ int zmk_hid_press(uint32_t usage);
+@@ -341,9 +344,16 @@ int zmk_hid_mouse_buttons_release(zmk_mouse_button_flags_t buttons);
+ void zmk_hid_mouse_clear(void);
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++void zmk_hid_generic_desktop_clear(void);
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++
+ struct zmk_hid_keyboard_report *zmk_hid_get_keyboard_report(void);
+ struct zmk_hid_consumer_report *zmk_hid_get_consumer_report(void);
++
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+ struct zmk_hid_generic_desktop_report *zmk_hid_get_generic_desktop_report(void);
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+ 
+ #if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+ zmk_hid_boot_report_t *zmk_hid_get_boot_report();
+diff --git a/app/include/zmk/hog.h b/app/include/zmk/hog.h
+index eb6e653f772..849105c2229 100644
+--- a/app/include/zmk/hog.h
++++ b/app/include/zmk/hog.h
+@@ -12,6 +12,10 @@
+ int zmk_hog_send_keyboard_report(struct zmk_hid_keyboard_report_body *body);
+ int zmk_hog_send_consumer_report(struct zmk_hid_consumer_report_body *body);
+ 
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++int zmk_hog_send_generic_desktop_report(struct zmk_hid_generic_desktop_report_body *body);
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++
+ #if IS_ENABLED(CONFIG_ZMK_MOUSE)
+ int zmk_hog_send_mouse_report(struct zmk_hid_mouse_report_body *body);
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+diff --git a/app/include/zmk/usb_hid.h b/app/include/zmk/usb_hid.h
+index e1dc1577c3f..93036361391 100644
+--- a/app/include/zmk/usb_hid.h
++++ b/app/include/zmk/usb_hid.h
+@@ -10,7 +10,11 @@
+ 
+ int zmk_usb_hid_send_keyboard_report(void);
+ int zmk_usb_hid_send_consumer_report(void);
++
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+ int zmk_usb_hid_send_generic_desktop_report(void);
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++
+ #if IS_ENABLED(CONFIG_ZMK_MOUSE)
+ int zmk_usb_hid_send_mouse_report(void);
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+diff --git a/app/src/endpoints.c b/app/src/endpoints.c
+index 9121ebbb813..d43d9af5a86 100644
+--- a/app/src/endpoints.c
++++ b/app/src/endpoints.c
+@@ -116,9 +116,7 @@ int zmk_endpoints_toggle_transport(void) {
+     return zmk_endpoints_select_transport(new_transport);
+ }
+ 
+-struct zmk_endpoint_instance zmk_endpoints_selected(void) {
+-    return current_instance;
+-}
++struct zmk_endpoint_instance zmk_endpoints_selected(void) { return current_instance; }
+ 
+ static int send_keyboard_report(void) {
+     switch (current_instance.transport) {
+@@ -188,6 +186,7 @@ static int send_consumer_report(void) {
+     return -ENOTSUP;
+ }
+ 
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+ static int send_generic_desktop_report(void) {
+     switch (current_instance.transport) {
+     case ZMK_TRANSPORT_USB: {
+@@ -204,14 +203,25 @@ static int send_generic_desktop_report(void) {
+     }
+ 
+     case ZMK_TRANSPORT_BLE: {
++#if IS_ENABLED(CONFIG_ZMK_BLE)
++        struct zmk_hid_generic_desktop_report *generic_desktop_report =
++            zmk_hid_get_generic_desktop_report();
++        int err = zmk_hog_send_generic_desktop_report(&generic_desktop_report->body);
++        if (err) {
++            LOG_ERR("FAILED TO SEND OVER HOG: %d", err);
++        }
++        return err;
++#else
+         LOG_ERR("BLE HOG endpoint is not supported");
+         return -ENOTSUP;
++#endif /* IS_ENABLED(CONFIG_ZMK_BLE) */
+     }
+     }
+ 
+     LOG_ERR("Unhandled endpoint transport %d", current_instance.transport);
+     return -ENOTSUP;
+ }
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+ 
+ int zmk_endpoints_send_report(uint16_t usage_page) {
+ 
+@@ -223,8 +233,10 @@ int zmk_endpoints_send_report(uint16_t usage_page) {
+     case HID_USAGE_CONSUMER:
+         return send_consumer_report();
+ 
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+     case HID_USAGE_GD:
+         return send_generic_desktop_report();
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+     }
+ 
+     LOG_ERR("Unsupported usage page %d", usage_page);
+@@ -362,10 +374,12 @@ static int zmk_endpoints_init(void) {
+ void zmk_endpoints_clear_current(void) {
+     zmk_hid_keyboard_clear();
+     zmk_hid_consumer_clear();
+-    zmk_hid_generic_desktop_clear();
+ #if IS_ENABLED(CONFIG_ZMK_MOUSE)
+     zmk_hid_mouse_clear();
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++    zmk_hid_generic_desktop_clear();
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+ 
+     zmk_endpoints_send_report(HID_USAGE_KEY);
+     zmk_endpoints_send_report(HID_USAGE_CONSUMER);
+diff --git a/app/src/hid.c b/app/src/hid.c
+index e90d46b504a..567bdc911d1 100644
+--- a/app/src/hid.c
++++ b/app/src/hid.c
+@@ -18,9 +18,6 @@ static struct zmk_hid_keyboard_report keyboard_report = {
+ static struct zmk_hid_consumer_report consumer_report = {.report_id = ZMK_HID_REPORT_ID_CONSUMER,
+                                                          .body = {.keys = {0}}};
+ 
+-static struct zmk_hid_generic_desktop_report generic_desktop_report = {
+-    .report_id = ZMK_HID_REPORT_ID_GENERIC_DESKTOP, .body = {.keys = {0}}};
+-
+ #if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+ 
+ static zmk_hid_boot_report_t boot_report = {.modifiers = 0, ._reserved = 0, .keys = {0}};
+@@ -35,6 +32,13 @@ static struct zmk_hid_mouse_report mouse_report = {.report_id = ZMK_HID_REPORT_I
+ 
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++
++static struct zmk_hid_generic_desktop_report generic_desktop_report = {
++    .report_id = ZMK_HID_REPORT_ID_GENERIC_DESKTOP, .body = {.keys = 0}};
++
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++
+ // Keep track of how often a modifier was pressed.
+ // Only release the modifier if the count is 0.
+ static int explicit_modifier_counts[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+@@ -343,25 +347,22 @@ bool zmk_hid_consumer_is_pressed(zmk_key_t key) {
+     return false;
+ }
+ 
+-int my_pressed = 0;
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+ int zmk_hid_generic_desktop_press(zmk_key_t code) {
++    if (code < HID_USAGE_GD_SYSTEM_POWER_DOWN || code > HID_USAGE_GD_SYSTEM_WAKE_UP) {
++        return -ENOTSUP;
++    }
+     int32_t offset = code - HID_USAGE_GD_SYSTEM_POWER_DOWN;
+-    LOG_DBG("Code 0x%02X pressed, offset 0x%02X", code, offset);
+-    WRITE_BIT(generic_desktop_report.body.keys[offset / 8], offset % 8, 1);
+-
+-    // generic_desktop_report.body.keys[0] = 0x00;
+-    // generic_desktop_report.body.keys[1] = 0x20;
++    WRITE_BIT(generic_desktop_report.body.keys, offset, 1);
+     return 0;
+ }
+ 
+ int zmk_hid_generic_desktop_release(zmk_key_t code) {
++    if (code < HID_USAGE_GD_SYSTEM_POWER_DOWN || code > HID_USAGE_GD_SYSTEM_WAKE_UP) {
++        return -ENOTSUP;
++    }
+     int32_t offset = code - HID_USAGE_GD_SYSTEM_POWER_DOWN;
+-    LOG_DBG("Code 0x%02X released, offset 0x%02X", code, offset);
+-    WRITE_BIT(generic_desktop_report.body.keys[offset / 8], offset % 8, 0);
+-
+-    // generic_desktop_report.body.keys[0] = 0x00;
+-    // generic_desktop_report.body.keys[1] = 0x00;
+-
++    WRITE_BIT(generic_desktop_report.body.keys, offset, 0);
+     return 0;
+ }
+ 
+@@ -370,9 +371,13 @@ void zmk_hid_generic_desktop_clear(void) {
+ }
+ 
+ bool zmk_hid_generic_desktop_is_pressed(zmk_key_t code) {
++    if (code < HID_USAGE_GD_SYSTEM_POWER_DOWN || code > HID_USAGE_GD_SYSTEM_WAKE_UP) {
++        return false;
++    }
+     int32_t offset = code - HID_USAGE_GD_SYSTEM_POWER_DOWN;
+-    return generic_desktop_report.body.keys[offset / 8] & (1 << (offset % 8));
++    return generic_desktop_report.body.keys & (1 << offset);
+ }
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+ 
+ int zmk_hid_press(uint32_t usage) {
+     switch (ZMK_HID_USAGE_PAGE(usage)) {
+@@ -380,8 +385,10 @@ int zmk_hid_press(uint32_t usage) {
+         return zmk_hid_keyboard_press(ZMK_HID_USAGE_ID(usage));
+     case HID_USAGE_CONSUMER:
+         return zmk_hid_consumer_press(ZMK_HID_USAGE_ID(usage));
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+     case HID_USAGE_GD:
+         return zmk_hid_generic_desktop_press(ZMK_HID_USAGE_ID(usage));
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+     }
+     return -EINVAL;
+ }
+@@ -392,8 +399,10 @@ int zmk_hid_release(uint32_t usage) {
+         return zmk_hid_keyboard_release(ZMK_HID_USAGE_ID(usage));
+     case HID_USAGE_CONSUMER:
+         return zmk_hid_consumer_release(ZMK_HID_USAGE_ID(usage));
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+     case HID_USAGE_GD:
+         return zmk_hid_generic_desktop_release(ZMK_HID_USAGE_ID(usage));
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+     }
+     return -EINVAL;
+ }
+@@ -404,8 +413,10 @@ bool zmk_hid_is_pressed(uint32_t usage) {
+         return zmk_hid_keyboard_is_pressed(ZMK_HID_USAGE_ID(usage));
+     case HID_USAGE_CONSUMER:
+         return zmk_hid_consumer_is_pressed(ZMK_HID_USAGE_ID(usage));
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+     case HID_USAGE_GD:
+         return zmk_hid_generic_desktop_is_pressed(ZMK_HID_USAGE_ID(usage));
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+     }
+     return false;
+ }
+@@ -479,9 +490,11 @@ struct zmk_hid_keyboard_report *zmk_hid_get_keyboard_report(void) { return &keyb
+ 
+ struct zmk_hid_consumer_report *zmk_hid_get_consumer_report(void) { return &consumer_report; }
+ 
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+ struct zmk_hid_generic_desktop_report *zmk_hid_get_generic_desktop_report(void) {
+     return &generic_desktop_report;
+ }
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+ 
+ #if IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
+diff --git a/app/src/hog.c b/app/src/hog.c
+index 82fafc29cd7..7d23ed28dea 100644
+--- a/app/src/hog.c
++++ b/app/src/hog.c
+@@ -383,6 +383,12 @@ int zmk_hog_send_mouse_report(struct zmk_hid_mouse_report_body *report) {
+ 
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++int zmk_hog_send_generic_desktop_report(struct zmk_hid_generic_desktop_report_body *body) {
++    return 0;
++}
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++
+ static int zmk_hog_init(void) {
+     static const struct k_work_queue_config queue_config = {.name = "HID Over GATT Send Work"};
+     k_work_queue_start(&hog_work_q, hog_q_stack, K_THREAD_STACK_SIZEOF(hog_q_stack),
+diff --git a/app/src/usb_hid.c b/app/src/usb_hid.c
+index 40241efcd80..c35d23f8440 100644
+--- a/app/src/usb_hid.c
++++ b/app/src/usb_hid.c
+@@ -164,28 +164,30 @@ int zmk_usb_hid_send_consumer_report(void) {
+     return zmk_usb_hid_send_report((uint8_t *)report, sizeof(*report));
+ }
+ 
+-int zmk_usb_hid_send_generic_desktop_report(void) {
++#if IS_ENABLED(CONFIG_ZMK_MOUSE)
++int zmk_usb_hid_send_mouse_report() {
+ #if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+     if (hid_protocol == HID_PROTOCOL_BOOT) {
+         return -ENOTSUP;
+     }
+ #endif /* IS_ENABLED(CONFIG_ZMK_USB_BOOT) */
+-    struct zmk_hid_generic_desktop_report *report = zmk_hid_get_generic_desktop_report();
++
++    struct zmk_hid_mouse_report *report = zmk_hid_get_mouse_report();
+     return zmk_usb_hid_send_report((uint8_t *)report, sizeof(*report));
+ }
++#endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
+-#if IS_ENABLED(CONFIG_ZMK_MOUSE)
+-int zmk_usb_hid_send_mouse_report() {
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++int zmk_usb_hid_send_generic_desktop_report(void) {
+ #if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+     if (hid_protocol == HID_PROTOCOL_BOOT) {
+         return -ENOTSUP;
+     }
+ #endif /* IS_ENABLED(CONFIG_ZMK_USB_BOOT) */
+-
+-    struct zmk_hid_mouse_report *report = zmk_hid_get_mouse_report();
++    struct zmk_hid_generic_desktop_report *report = zmk_hid_get_generic_desktop_report();
+     return zmk_usb_hid_send_report((uint8_t *)report, sizeof(*report));
+ }
+-#endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+ 
+ static int zmk_usb_hid_init(void) {
+     hid_dev = device_get_binding("HID_0");
+
+From 3b1fb3413f4ad0a9716ad419a434410bb8ee6e78 Mon Sep 17 00:00:00 2001
+From: angweekiat <weekiatah@gmail.com>
+Date: Tue, 10 Sep 2024 14:50:53 +0800
+Subject: [PATCH 05/10] USB HID send 2 bytes
+
+---
+ app/Kconfig                             |  4 ++
+ app/include/dt-bindings/zmk/hid_usage.h |  1 +
+ app/include/dt-bindings/zmk/keys.h      | 77 ++++++++++++++++++++++++-
+ app/include/zmk/hid.h                   | 49 +++++++++++-----
+ app/src/hid.c                           | 33 +++++++----
+ app/src/hog.c                           | 38 ++++++++++++
+ 6 files changed, 176 insertions(+), 26 deletions(-)
+
+diff --git a/app/Kconfig b/app/Kconfig
+index f91a991a091..62529bcadfc 100644
+--- a/app/Kconfig
++++ b/app/Kconfig
+@@ -125,6 +125,10 @@ config ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS
+       Enable only 3 Generic Desktop ID values, "Power Down", "Sleep", "Wake up", to be
+       sent to hosts.
+ 
++config ZMK_BLE_GENERIC_DESKTOP_REPORT_QUEUE_SIZE
++    int "Max number of Generic Desktop HID reports to queue for sending over BLE"
++    default 3
++
+ menu "Output Types"
+ 
+ config ZMK_USB
+diff --git a/app/include/dt-bindings/zmk/hid_usage.h b/app/include/dt-bindings/zmk/hid_usage.h
+index 8c0e9470829..995f962753a 100644
+--- a/app/include/dt-bindings/zmk/hid_usage.h
++++ b/app/include/dt-bindings/zmk/hid_usage.h
+@@ -94,6 +94,7 @@
+ #define HID_USAGE_GD_APPLICATION_DEBUGGER_BREAK (0xA6)                 // OSC
+ #define HID_USAGE_GD_SYSTEM_SPEAKER_MUTE (0xA7)                        // OSC
+ #define HID_USAGE_GD_SYSTEM_HIBERNATE (0xA8)                           // OSC
++#define HID_USAGE_GD_SYSTEM_MICROPHONE_MUTE (0xA9)                     // OOC
+ #define HID_USAGE_GD_SYSTEM_DISPLAY_INVERT (0xB0)                      // OSC
+ #define HID_USAGE_GD_SYSTEM_DISPLAY_INTERNAL (0xB1)                    // OSC
+ #define HID_USAGE_GD_SYSTEM_DISPLAY_EXTERNAL (0xB2)                    // OSC
+diff --git a/app/include/dt-bindings/zmk/keys.h b/app/include/dt-bindings/zmk/keys.h
+index d990e438219..88158e97582 100644
+--- a/app/include/dt-bindings/zmk/keys.h
++++ b/app/include/dt-bindings/zmk/keys.h
+@@ -59,7 +59,82 @@
+ 
+ /* System Menu Down */
+ #define SYSTEM_MENU_DOWN (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_MENU_DOWN))
+-#define SYS_MENU_DONW (SYSTEM_MENU_DOWN)
++#define SYS_MENU_DOWN (SYSTEM_MENU_DOWN)
++
++/* System Cold Restart */
++#define SYSTEM_COLD_RESTART (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_COLD_RESTART))
++#define SYS_COLD_RESTART (SYSTEM_COLD_RESTART)
++
++/* System Warm Restart */
++#define SYSTEM_WARM_RESTART (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_WARM_RESTART))
++#define SYS_WARM_RESTART (SYSTEM_WARM_RESTART)
++
++/* System Dock */
++#define SYSTEM_DOCK (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_DOCK))
++#define SYS_DOCK (SYSTEM_DOCK)
++
++/* System Undock */
++#define SYSTEM_UNDOCK (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_UNDOCK))
++#define SYS_UNDOCK (SYSTEM_UNDOCK)
++
++/* System Setup */
++#define SYSTEM_SETUP (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_SETUP))
++#define SYS_SETUP (SYSTEM_SETUP)
++
++/* System Break */
++#define SYSTEM_BREAK (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_BREAK))
++#define SYS_BREAK (SYSTEM_BREAK)
++
++/* System Debugger Break */
++#define SYSTEM_DEBUGGER_BREAK (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_DEBUGGER_BREAK))
++#define SYS_DEBUGGER_BREAK (SYSTEM_DEBUGGER_BREAK)
++
++/* Application Break */
++#define APPLICATION_BREAK (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_APPLICATION_BREAK))
++#define APP_BREAK (APPLICATION_BREAK)
++
++/* Application Debugger Break */
++#define APPLICATION_DEBUGGER_BREAK                                                                 \
++    (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_APPLICATION_DEBUGGER_BREAK))
++#define APP_DEBUGGER_BREAK (APPLICATION_DEBUGGER_BREAK)
++
++/* System Speaker Mute */
++#define SYSTEM_SPEAKER_MUTE (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_SPEAKER_MUTE))
++#define SYS_SPEAKER_MUTE (SYSTEM_SPEAKER_MUTE)
++
++/* System Hibernate */
++#define SYSTEM_HIBERNATE (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_HIBERNATE))
++#define SYS_HIBERNATE (SYSTEM_HIBERNATE)
++
++/* System Display Invert */
++#define SYSTEM_DISPLAY_INVERT (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_DISPLAY_INVERT))
++#define SYS_DISPLAY_INVERT (SYSTEM_DISPLAY_INVERT)
++
++/* System Display Internal */
++#define SYSTEM_DISPLAY_INTERNAL (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_DISPLAY_INTERNAL))
++#define SYS_DISPLAY_INTERNAL (SYSTEM_DISPLAY_INTERNAL)
++
++/* System Display External */
++#define SYSTEM_DISPLAY_EXTERNAL (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_DISPLAY_EXTERNAL))
++#define SYS_DISPLAY_EXTERNAL (SYSTEM_DISPLAY_EXTERNAL)
++
++/* System Display Both */
++#define SYSTEM_DISPLAY_BOTH (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_DISPLAY_BOTH))
++#define SYS_DISPLAY_BOTH (SYSTEM_DISPLAY_BOTH)
++
++/* System Display Dual */
++#define SYSTEM_DISPLAY_DUAL (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_DISPLAY_DUAL))
++#define SYS_DISPLAY_DUAL (SYSTEM_DISPLAY_DUAL)
++
++/* System Display Toggle Int/Ext Mode */
++#define SYSTEM_DISPLAY_TOGGLE_INT_EXT_MODE                                                         \
++    (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_DISPLAY_TOGGLE_INT_EXT_MODE))
++#define SYS_DISPLAY_TOGGLE_INT_EXT_MODE (SYSTEM_DISPLAY_TOGGLE_INT_EXT_MODE)
++
++/* System Display Swap Primary/Secondary */
++#define SYSTEM_DISPLAY_SWAP_PRIMARY_SECONDARY                                                      \
++    (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_DISPLAY_SWAP_PRIMARY_SECONDARY))
++#define SYS_DISPLAY_SWAP_PRIMARY_SECONDARY (SYSTEM_DISPLAY_SWAP_PRIMARY_SECONDARY)
+ 
+ /* Keyboard a and A */
+ #define A (ZMK_HID_USAGE(HID_USAGE_KEY, HID_USAGE_KEY_KEYBOARD_A))
+diff --git a/app/include/zmk/hid.h b/app/include/zmk/hid.h
+index dcd76a64e4f..c87fdf12f5a 100644
+--- a/app/include/zmk/hid.h
++++ b/app/include/zmk/hid.h
+@@ -209,17 +209,38 @@ static const uint8_t zmk_hid_report_desc[] = {
+     HID_COLLECTION(HID_COLLECTION_APPLICATION),
+     HID_REPORT_ID(ZMK_HID_REPORT_ID_GENERIC_DESKTOP),
+ 
++    // System Power down (0x81) to System Menu select (0x89), OSC, 9 bits
+     HID_USAGE_MIN8(HID_USAGE_GD_SYSTEM_POWER_DOWN),
+-    HID_USAGE_MAX8(HID_USAGE_GD_SYSTEM_WAKE_UP),
++    HID_USAGE_MAX8(HID_USAGE_GD_SYSTEM_MENU_SELECT),
+     HID_LOGICAL_MIN8(0x00),
+     HID_LOGICAL_MAX8(0x01),
+     HID_REPORT_SIZE(0x01),
+-    HID_REPORT_COUNT(0x03),
++    HID_REPORT_COUNT(0x09),
++    HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_REL),
++
++    // System Menu Right (0x8A) to System Menu Down (0x8D), RTC, 4 bits
++    HID_USAGE_MIN8(HID_USAGE_GD_SYSTEM_MENU_RIGHT),
++    HID_USAGE_MAX8(HID_USAGE_GD_SYSTEM_MENU_DOWN),
++    HID_LOGICAL_MIN8(0x00),
++    HID_LOGICAL_MAX8(0x01),
++    HID_REPORT_SIZE(0x01),
++    HID_REPORT_COUNT(0x04),
+     HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+ 
+-    HID_REPORT_SIZE(0x05),
++    // System Cold Restart (0x8E) & System Warm Restart (0x8F), OSC, 2 bits
++    HID_USAGE_MIN8(HID_USAGE_GD_SYSTEM_COLD_RESTART),
++    HID_USAGE_MAX8(HID_USAGE_GD_SYSTEM_WARM_RESTART),
++    HID_LOGICAL_MIN8(0x00),
++    HID_LOGICAL_MAX8(0x01),
++    HID_REPORT_SIZE(0x01),
++    HID_REPORT_COUNT(0x02),
++    HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_REL),
++
++    // 1 bit padding
++    HID_REPORT_SIZE(0x01),
+     HID_REPORT_COUNT(0x01),
+     HID_INPUT(ZMK_HID_MAIN_VAL_CONST | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
++
+     HID_END_COLLECTION,
+ #endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+ };
+@@ -258,17 +279,6 @@ struct zmk_hid_keyboard_report {
+     struct zmk_hid_keyboard_report_body body;
+ } __packed;
+ 
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+-struct zmk_hid_generic_desktop_report_body {
+-    uint8_t keys;
+-} __packed;
+-
+-struct zmk_hid_generic_desktop_report {
+-    uint8_t report_id;
+-    struct zmk_hid_generic_desktop_report_body body;
+-} __packed;
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+-
+ #if IS_ENABLED(CONFIG_ZMK_HID_INDICATORS)
+ 
+ struct zmk_hid_led_report_body {
+@@ -310,6 +320,17 @@ struct zmk_hid_mouse_report {
+ 
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++struct zmk_hid_generic_desktop_report_body {
++    uint8_t keys[2];
++} __packed;
++
++struct zmk_hid_generic_desktop_report {
++    uint8_t report_id;
++    struct zmk_hid_generic_desktop_report_body body;
++} __packed;
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++
+ zmk_mod_flags_t zmk_hid_get_explicit_mods(void);
+ int zmk_hid_register_mod(zmk_mod_t modifier);
+ int zmk_hid_unregister_mod(zmk_mod_t modifier);
+diff --git a/app/src/hid.c b/app/src/hid.c
+index 567bdc911d1..68f38f10ce8 100644
+--- a/app/src/hid.c
++++ b/app/src/hid.c
+@@ -35,7 +35,7 @@ static struct zmk_hid_mouse_report mouse_report = {.report_id = ZMK_HID_REPORT_I
+ #if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+ 
+ static struct zmk_hid_generic_desktop_report generic_desktop_report = {
+-    .report_id = ZMK_HID_REPORT_ID_GENERIC_DESKTOP, .body = {.keys = 0}};
++    .report_id = ZMK_HID_REPORT_ID_GENERIC_DESKTOP, .body = {.keys = {0}}};
+ 
+ #endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+ 
+@@ -348,21 +348,32 @@ bool zmk_hid_consumer_is_pressed(zmk_key_t key) {
+ }
+ 
+ #if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#define TOGGLE_STUFF(code, val) WRITE_BIT(generic_desktop_report.body.keys[code / 8], code % 8, val)
++#define GENERIC_DESKTOP_CODE_IN_RANGE(code)
++
++int32_t zmk_hid_generic_desktop_code_to_offset(zmk_key_t code) {
++    if (HID_USAGE_GD_SYSTEM_POWER_DOWN <= code && code <= HID_USAGE_GD_SYSTEM_WARM_RESTART) {
++        return code - HID_USAGE_GD_SYSTEM_POWER_DOWN;
++    }
++
++    return -ENOTSUP;
++}
++
+ int zmk_hid_generic_desktop_press(zmk_key_t code) {
+-    if (code < HID_USAGE_GD_SYSTEM_POWER_DOWN || code > HID_USAGE_GD_SYSTEM_WAKE_UP) {
++    int32_t offset = zmk_hid_generic_desktop_code_to_offset(code);
++    if (offset == -ENOTSUP) {
+         return -ENOTSUP;
+     }
+-    int32_t offset = code - HID_USAGE_GD_SYSTEM_POWER_DOWN;
+-    WRITE_BIT(generic_desktop_report.body.keys, offset, 1);
++    TOGGLE_STUFF(offset, 1);
+     return 0;
+ }
+ 
+ int zmk_hid_generic_desktop_release(zmk_key_t code) {
+-    if (code < HID_USAGE_GD_SYSTEM_POWER_DOWN || code > HID_USAGE_GD_SYSTEM_WAKE_UP) {
++    int32_t offset = zmk_hid_generic_desktop_code_to_offset(code);
++    if (offset == -ENOTSUP) {
+         return -ENOTSUP;
+     }
+-    int32_t offset = code - HID_USAGE_GD_SYSTEM_POWER_DOWN;
+-    WRITE_BIT(generic_desktop_report.body.keys, offset, 0);
++    TOGGLE_STUFF(offset, 0);
+     return 0;
+ }
+ 
+@@ -371,11 +382,11 @@ void zmk_hid_generic_desktop_clear(void) {
+ }
+ 
+ bool zmk_hid_generic_desktop_is_pressed(zmk_key_t code) {
+-    if (code < HID_USAGE_GD_SYSTEM_POWER_DOWN || code > HID_USAGE_GD_SYSTEM_WAKE_UP) {
+-        return false;
++    int32_t offset = zmk_hid_generic_desktop_code_to_offset(code);
++    if (offset == -ENOTSUP) {
++        return -false;
+     }
+-    int32_t offset = code - HID_USAGE_GD_SYSTEM_POWER_DOWN;
+-    return generic_desktop_report.body.keys & (1 << offset);
++    return generic_desktop_report.body.keys[offset / 8] & (1 << (offset % 8));
+ }
+ #endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+ 
+diff --git a/app/src/hog.c b/app/src/hog.c
+index 7d23ed28dea..2ecb77d86a6 100644
+--- a/app/src/hog.c
++++ b/app/src/hog.c
+@@ -78,6 +78,15 @@ static struct hids_report mouse_input = {
+ 
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++
++static struct hids_report generic_desktop_input = {
++    .id = ZMK_HID_REPORT_ID_MOUSE,
++    .type = HIDS_INPUT,
++};
++
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++
+ static bool host_requests_notification = false;
+ static uint8_t ctrl_point;
+ // static uint8_t proto_mode;
+@@ -384,6 +393,35 @@ int zmk_hog_send_mouse_report(struct zmk_hid_mouse_report_body *report) {
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
+ #if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++
++K_MSGQ_DEFINE(zmk_hog_generic_desktop_msgq, sizeof(struct zmk_hid_generic_desktop_report_body),
++              CONFIG_ZMK_BLE_GENERIC_DESKTOP_REPORT_QUEUE_SIZE, 1);
++
++void send_generic_desktop_report_callback(struct k_work *work) {
++    struct zmk_hid_generic_desktop_report_body report;
++    while (k_msgq_get(&zmk_hog_generic_desktop_msgq, &report, K_NO_WAIT) == 0) {
++        struct bt_conn *conn = zmk_ble_active_profile_conn();
++        if (conn == NULL) {
++            return;
++        }
++
++        struct bt_gatt_notify_params notify_params = {
++            .attr = &hog_svc.attrs[13],
++            .data = &report,
++            .len = sizeof(report),
++        };
++
++        int err = bt_gatt_notify_cb(conn, &notify_params);
++        if (err == -EPERM) {
++            bt_conn_set_security(conn, BT_SECURITY_L2);
++        } else if (err) {
++            LOG_DBG("Error notifying %d", err);
++        }
++
++        bt_conn_unref(conn);
++    }
++};
++
+ int zmk_hog_send_generic_desktop_report(struct zmk_hid_generic_desktop_report_body *body) {
+     return 0;
+ }
+
+From 8089d0542e0305a314b13871186e3bef625892e3 Mon Sep 17 00:00:00 2001
+From: angweekiat <weekiatah@gmail.com>
+Date: Tue, 10 Sep 2024 17:19:47 +0800
+Subject: [PATCH 06/10] clean up needed, but this works for both USB and BLE
+
+---
+ app/Kconfig                        |  8 ++--
+ app/include/dt-bindings/zmk/keys.h | 67 --------------------------
+ app/include/zmk/hid.h              | 18 +++----
+ app/include/zmk/hog.h              |  4 +-
+ app/include/zmk/usb_hid.h          |  4 +-
+ app/src/endpoints.c                | 12 ++---
+ app/src/hid.c                      | 54 ++++++++++++---------
+ app/src/hog.c                      | 75 +++++++++++++++++++++++++++---
+ app/src/usb_hid.c                  |  4 +-
+ 9 files changed, 124 insertions(+), 122 deletions(-)
+
+diff --git a/app/Kconfig b/app/Kconfig
+index 62529bcadfc..8315f07b065 100644
+--- a/app/Kconfig
++++ b/app/Kconfig
+@@ -119,11 +119,11 @@ config ZMK_HID_SEPARATE_MOD_RELEASE_REPORT
+       Send a separate release event for the modifiers, to make sure the release
+       of the modifier doesn't get recognized before the actual key's release event.
+ 
+-config ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS
+-    bool "Power-related Generic Desktop HID Usage Support"
++config ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC
++    bool "Basic Generic Desktop HID Usage Support"
+     help
+-      Enable only 3 Generic Desktop ID values, "Power Down", "Sleep", "Wake up", to be
+-      sent to hosts.
++      Enable only 15 Generic Desktop ID values, "Power Down", "Sleep", "Wake up", ...,
++      "Warm Restart" to be sent to hosts.
+ 
+ config ZMK_BLE_GENERIC_DESKTOP_REPORT_QUEUE_SIZE
+     int "Max number of Generic Desktop HID reports to queue for sending over BLE"
+diff --git a/app/include/dt-bindings/zmk/keys.h b/app/include/dt-bindings/zmk/keys.h
+index 88158e97582..830e79f9275 100644
+--- a/app/include/dt-bindings/zmk/keys.h
++++ b/app/include/dt-bindings/zmk/keys.h
+@@ -69,73 +69,6 @@
+ #define SYSTEM_WARM_RESTART (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_WARM_RESTART))
+ #define SYS_WARM_RESTART (SYSTEM_WARM_RESTART)
+ 
+-/* System Dock */
+-#define SYSTEM_DOCK (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_DOCK))
+-#define SYS_DOCK (SYSTEM_DOCK)
+-
+-/* System Undock */
+-#define SYSTEM_UNDOCK (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_UNDOCK))
+-#define SYS_UNDOCK (SYSTEM_UNDOCK)
+-
+-/* System Setup */
+-#define SYSTEM_SETUP (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_SETUP))
+-#define SYS_SETUP (SYSTEM_SETUP)
+-
+-/* System Break */
+-#define SYSTEM_BREAK (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_BREAK))
+-#define SYS_BREAK (SYSTEM_BREAK)
+-
+-/* System Debugger Break */
+-#define SYSTEM_DEBUGGER_BREAK (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_DEBUGGER_BREAK))
+-#define SYS_DEBUGGER_BREAK (SYSTEM_DEBUGGER_BREAK)
+-
+-/* Application Break */
+-#define APPLICATION_BREAK (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_APPLICATION_BREAK))
+-#define APP_BREAK (APPLICATION_BREAK)
+-
+-/* Application Debugger Break */
+-#define APPLICATION_DEBUGGER_BREAK                                                                 \
+-    (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_APPLICATION_DEBUGGER_BREAK))
+-#define APP_DEBUGGER_BREAK (APPLICATION_DEBUGGER_BREAK)
+-
+-/* System Speaker Mute */
+-#define SYSTEM_SPEAKER_MUTE (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_SPEAKER_MUTE))
+-#define SYS_SPEAKER_MUTE (SYSTEM_SPEAKER_MUTE)
+-
+-/* System Hibernate */
+-#define SYSTEM_HIBERNATE (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_HIBERNATE))
+-#define SYS_HIBERNATE (SYSTEM_HIBERNATE)
+-
+-/* System Display Invert */
+-#define SYSTEM_DISPLAY_INVERT (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_DISPLAY_INVERT))
+-#define SYS_DISPLAY_INVERT (SYSTEM_DISPLAY_INVERT)
+-
+-/* System Display Internal */
+-#define SYSTEM_DISPLAY_INTERNAL (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_DISPLAY_INTERNAL))
+-#define SYS_DISPLAY_INTERNAL (SYSTEM_DISPLAY_INTERNAL)
+-
+-/* System Display External */
+-#define SYSTEM_DISPLAY_EXTERNAL (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_DISPLAY_EXTERNAL))
+-#define SYS_DISPLAY_EXTERNAL (SYSTEM_DISPLAY_EXTERNAL)
+-
+-/* System Display Both */
+-#define SYSTEM_DISPLAY_BOTH (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_DISPLAY_BOTH))
+-#define SYS_DISPLAY_BOTH (SYSTEM_DISPLAY_BOTH)
+-
+-/* System Display Dual */
+-#define SYSTEM_DISPLAY_DUAL (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_DISPLAY_DUAL))
+-#define SYS_DISPLAY_DUAL (SYSTEM_DISPLAY_DUAL)
+-
+-/* System Display Toggle Int/Ext Mode */
+-#define SYSTEM_DISPLAY_TOGGLE_INT_EXT_MODE                                                         \
+-    (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_DISPLAY_TOGGLE_INT_EXT_MODE))
+-#define SYS_DISPLAY_TOGGLE_INT_EXT_MODE (SYSTEM_DISPLAY_TOGGLE_INT_EXT_MODE)
+-
+-/* System Display Swap Primary/Secondary */
+-#define SYSTEM_DISPLAY_SWAP_PRIMARY_SECONDARY                                                      \
+-    (ZMK_HID_USAGE(HID_USAGE_GD, HID_USAGE_GD_SYSTEM_DISPLAY_SWAP_PRIMARY_SECONDARY))
+-#define SYS_DISPLAY_SWAP_PRIMARY_SECONDARY (SYSTEM_DISPLAY_SWAP_PRIMARY_SECONDARY)
+-
+ /* Keyboard a and A */
+ #define A (ZMK_HID_USAGE(HID_USAGE_KEY, HID_USAGE_KEY_KEYBOARD_A))
+ 
+diff --git a/app/include/zmk/hid.h b/app/include/zmk/hid.h
+index c87fdf12f5a..007cef125c6 100644
+--- a/app/include/zmk/hid.h
++++ b/app/include/zmk/hid.h
+@@ -203,7 +203,7 @@ static const uint8_t zmk_hid_report_desc[] = {
+     HID_END_COLLECTION,
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+     HID_USAGE_PAGE(HID_USAGE_GEN_DESKTOP),
+     HID_USAGE(HID_USAGE_GD_SYSTEM_CONTROL),
+     HID_COLLECTION(HID_COLLECTION_APPLICATION),
+@@ -238,11 +238,11 @@ static const uint8_t zmk_hid_report_desc[] = {
+ 
+     // 1 bit padding
+     HID_REPORT_SIZE(0x01),
+-    HID_REPORT_COUNT(0x01),
++    HID_REPORT_COUNT(0x1),
+     HID_INPUT(ZMK_HID_MAIN_VAL_CONST | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+ 
+     HID_END_COLLECTION,
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ };
+ 
+ #if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+@@ -320,7 +320,7 @@ struct zmk_hid_mouse_report {
+ 
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ struct zmk_hid_generic_desktop_report_body {
+     uint8_t keys[2];
+ } __packed;
+@@ -329,7 +329,7 @@ struct zmk_hid_generic_desktop_report {
+     uint8_t report_id;
+     struct zmk_hid_generic_desktop_report_body body;
+ } __packed;
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ 
+ zmk_mod_flags_t zmk_hid_get_explicit_mods(void);
+ int zmk_hid_register_mod(zmk_mod_t modifier);
+@@ -365,16 +365,16 @@ int zmk_hid_mouse_buttons_release(zmk_mouse_button_flags_t buttons);
+ void zmk_hid_mouse_clear(void);
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ void zmk_hid_generic_desktop_clear(void);
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ 
+ struct zmk_hid_keyboard_report *zmk_hid_get_keyboard_report(void);
+ struct zmk_hid_consumer_report *zmk_hid_get_consumer_report(void);
+ 
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ struct zmk_hid_generic_desktop_report *zmk_hid_get_generic_desktop_report(void);
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ 
+ #if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+ zmk_hid_boot_report_t *zmk_hid_get_boot_report();
+diff --git a/app/include/zmk/hog.h b/app/include/zmk/hog.h
+index 849105c2229..0d94b22f2ad 100644
+--- a/app/include/zmk/hog.h
++++ b/app/include/zmk/hog.h
+@@ -12,9 +12,9 @@
+ int zmk_hog_send_keyboard_report(struct zmk_hid_keyboard_report_body *body);
+ int zmk_hog_send_consumer_report(struct zmk_hid_consumer_report_body *body);
+ 
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ int zmk_hog_send_generic_desktop_report(struct zmk_hid_generic_desktop_report_body *body);
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ 
+ #if IS_ENABLED(CONFIG_ZMK_MOUSE)
+ int zmk_hog_send_mouse_report(struct zmk_hid_mouse_report_body *body);
+diff --git a/app/include/zmk/usb_hid.h b/app/include/zmk/usb_hid.h
+index 93036361391..5090238e44e 100644
+--- a/app/include/zmk/usb_hid.h
++++ b/app/include/zmk/usb_hid.h
+@@ -11,9 +11,9 @@
+ int zmk_usb_hid_send_keyboard_report(void);
+ int zmk_usb_hid_send_consumer_report(void);
+ 
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ int zmk_usb_hid_send_generic_desktop_report(void);
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ 
+ #if IS_ENABLED(CONFIG_ZMK_MOUSE)
+ int zmk_usb_hid_send_mouse_report(void);
+diff --git a/app/src/endpoints.c b/app/src/endpoints.c
+index d43d9af5a86..b4f47737e65 100644
+--- a/app/src/endpoints.c
++++ b/app/src/endpoints.c
+@@ -186,7 +186,7 @@ static int send_consumer_report(void) {
+     return -ENOTSUP;
+ }
+ 
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ static int send_generic_desktop_report(void) {
+     switch (current_instance.transport) {
+     case ZMK_TRANSPORT_USB: {
+@@ -221,7 +221,7 @@ static int send_generic_desktop_report(void) {
+     LOG_ERR("Unhandled endpoint transport %d", current_instance.transport);
+     return -ENOTSUP;
+ }
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ 
+ int zmk_endpoints_send_report(uint16_t usage_page) {
+ 
+@@ -233,10 +233,10 @@ int zmk_endpoints_send_report(uint16_t usage_page) {
+     case HID_USAGE_CONSUMER:
+         return send_consumer_report();
+ 
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+     case HID_USAGE_GD:
+         return send_generic_desktop_report();
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+     }
+ 
+     LOG_ERR("Unsupported usage page %d", usage_page);
+@@ -377,9 +377,9 @@ void zmk_endpoints_clear_current(void) {
+ #if IS_ENABLED(CONFIG_ZMK_MOUSE)
+     zmk_hid_mouse_clear();
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+     zmk_hid_generic_desktop_clear();
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ 
+     zmk_endpoints_send_report(HID_USAGE_KEY);
+     zmk_endpoints_send_report(HID_USAGE_CONSUMER);
+diff --git a/app/src/hid.c b/app/src/hid.c
+index 68f38f10ce8..5c4232f1030 100644
+--- a/app/src/hid.c
++++ b/app/src/hid.c
+@@ -32,12 +32,12 @@ static struct zmk_hid_mouse_report mouse_report = {.report_id = ZMK_HID_REPORT_I
+ 
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ 
+ static struct zmk_hid_generic_desktop_report generic_desktop_report = {
+     .report_id = ZMK_HID_REPORT_ID_GENERIC_DESKTOP, .body = {.keys = {0}}};
+ 
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ 
+ // Keep track of how often a modifier was pressed.
+ // Only release the modifier if the count is 0.
+@@ -347,24 +347,38 @@ bool zmk_hid_consumer_is_pressed(zmk_key_t key) {
+     return false;
+ }
+ 
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
+-#define TOGGLE_STUFF(code, val) WRITE_BIT(generic_desktop_report.body.keys[code / 8], code % 8, val)
+-#define GENERIC_DESKTOP_CODE_IN_RANGE(code)
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
++#define TOGGLE_GENERIC_DESKTOP(code, val)                                                          \
++    WRITE_BIT(generic_desktop_report.body.keys[code / 8], code % 8, val)
+ 
+ int32_t zmk_hid_generic_desktop_code_to_offset(zmk_key_t code) {
+     if (HID_USAGE_GD_SYSTEM_POWER_DOWN <= code && code <= HID_USAGE_GD_SYSTEM_WARM_RESTART) {
+         return code - HID_USAGE_GD_SYSTEM_POWER_DOWN;
+     }
+ 
++    LOG_ERR("Unhandled generic desktop code 0x%02X", code);
+     return -ENOTSUP;
+ }
+ 
++bool zmk_hid_generic_desktop_is_pressed(zmk_key_t code) {
++    int32_t offset = zmk_hid_generic_desktop_code_to_offset(code);
++    if (offset == -ENOTSUP) {
++        LOG_DBG("Bad mojo 0x%02X", code);
++        return false;
++    }
++    LOG_DBG("Key pressed 0x%02X offset: %d is pressed: %d %d", code, offset,
++            generic_desktop_report.body.keys[offset / 8] & (1 << (offset % 8)),
++            generic_desktop_report.body.keys[0]);
++    return generic_desktop_report.body.keys[offset / 8] & (1 << (offset % 8));
++}
++
+ int zmk_hid_generic_desktop_press(zmk_key_t code) {
+     int32_t offset = zmk_hid_generic_desktop_code_to_offset(code);
+     if (offset == -ENOTSUP) {
+         return -ENOTSUP;
+     }
+-    TOGGLE_STUFF(offset, 1);
++    TOGGLE_GENERIC_DESKTOP(offset, 1);
++    zmk_hid_generic_desktop_is_pressed(code);
+     return 0;
+ }
+ 
+@@ -373,7 +387,8 @@ int zmk_hid_generic_desktop_release(zmk_key_t code) {
+     if (offset == -ENOTSUP) {
+         return -ENOTSUP;
+     }
+-    TOGGLE_STUFF(offset, 0);
++    TOGGLE_GENERIC_DESKTOP(offset, 0);
++    zmk_hid_generic_desktop_is_pressed(code);
+     return 0;
+ }
+ 
+@@ -381,14 +396,7 @@ void zmk_hid_generic_desktop_clear(void) {
+     memset(&generic_desktop_report.body, 0, sizeof(generic_desktop_report.body));
+ }
+ 
+-bool zmk_hid_generic_desktop_is_pressed(zmk_key_t code) {
+-    int32_t offset = zmk_hid_generic_desktop_code_to_offset(code);
+-    if (offset == -ENOTSUP) {
+-        return -false;
+-    }
+-    return generic_desktop_report.body.keys[offset / 8] & (1 << (offset % 8));
+-}
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ 
+ int zmk_hid_press(uint32_t usage) {
+     switch (ZMK_HID_USAGE_PAGE(usage)) {
+@@ -396,10 +404,10 @@ int zmk_hid_press(uint32_t usage) {
+         return zmk_hid_keyboard_press(ZMK_HID_USAGE_ID(usage));
+     case HID_USAGE_CONSUMER:
+         return zmk_hid_consumer_press(ZMK_HID_USAGE_ID(usage));
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+     case HID_USAGE_GD:
+         return zmk_hid_generic_desktop_press(ZMK_HID_USAGE_ID(usage));
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+     }
+     return -EINVAL;
+ }
+@@ -410,10 +418,10 @@ int zmk_hid_release(uint32_t usage) {
+         return zmk_hid_keyboard_release(ZMK_HID_USAGE_ID(usage));
+     case HID_USAGE_CONSUMER:
+         return zmk_hid_consumer_release(ZMK_HID_USAGE_ID(usage));
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+     case HID_USAGE_GD:
+         return zmk_hid_generic_desktop_release(ZMK_HID_USAGE_ID(usage));
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+     }
+     return -EINVAL;
+ }
+@@ -424,10 +432,10 @@ bool zmk_hid_is_pressed(uint32_t usage) {
+         return zmk_hid_keyboard_is_pressed(ZMK_HID_USAGE_ID(usage));
+     case HID_USAGE_CONSUMER:
+         return zmk_hid_consumer_is_pressed(ZMK_HID_USAGE_ID(usage));
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+     case HID_USAGE_GD:
+         return zmk_hid_generic_desktop_is_pressed(ZMK_HID_USAGE_ID(usage));
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+     }
+     return false;
+ }
+@@ -501,11 +509,11 @@ struct zmk_hid_keyboard_report *zmk_hid_get_keyboard_report(void) { return &keyb
+ 
+ struct zmk_hid_consumer_report *zmk_hid_get_consumer_report(void) { return &consumer_report; }
+ 
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ struct zmk_hid_generic_desktop_report *zmk_hid_get_generic_desktop_report(void) {
+     return &generic_desktop_report;
+ }
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ 
+ #if IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
+diff --git a/app/src/hog.c b/app/src/hog.c
+index 2ecb77d86a6..c772cade17a 100644
+--- a/app/src/hog.c
++++ b/app/src/hog.c
+@@ -78,14 +78,14 @@ static struct hids_report mouse_input = {
+ 
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ 
+ static struct hids_report generic_desktop_input = {
+-    .id = ZMK_HID_REPORT_ID_MOUSE,
++    .id = ZMK_HID_REPORT_ID_GENERIC_DESKTOP,
+     .type = HIDS_INPUT,
+ };
+ 
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ 
+ static bool host_requests_notification = false;
+ static uint8_t ctrl_point;
+@@ -161,6 +161,19 @@ static ssize_t read_hids_mouse_input_report(struct bt_conn *conn, const struct b
+ }
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
++static ssize_t read_hids_generic_desktop_input_report(struct bt_conn *conn,
++                                                      const struct bt_gatt_attr *attr, void *buf,
++                                                      uint16_t len, uint16_t offset) {
++    struct zmk_hid_generic_desktop_report_body *report_body =
++        &zmk_hid_get_generic_desktop_report()->body;
++    return bt_gatt_attr_read(conn, attr, buf, len, offset, report_body,
++                             sizeof(struct zmk_hid_generic_desktop_report_body));
++}
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
++
++#define MOUSE_ATTR_SIZE COND_CODE_1(IS_ENABLED(CONFIG_ZMK_MOUSE), (1), (0))
++
+ // static ssize_t write_proto_mode(struct bt_conn *conn,
+ //                                 const struct bt_gatt_attr *attr,
+ //                                 const void *buf, uint16_t len, uint16_t offset,
+@@ -189,23 +202,35 @@ static ssize_t write_ctrl_point(struct bt_conn *conn, const struct bt_gatt_attr
+ 
+ /* HID Service Declaration */
+ BT_GATT_SERVICE_DEFINE(
+-    hog_svc, BT_GATT_PRIMARY_SERVICE(BT_UUID_HIDS),
++    hog_svc,
++    BT_GATT_PRIMARY_SERVICE(BT_UUID_HIDS), // Attr 0
+     //    BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_PROTOCOL_MODE, BT_GATT_CHRC_WRITE_WITHOUT_RESP,
+     //                           BT_GATT_PERM_WRITE, NULL, write_proto_mode, &proto_mode),
++    // Attr 1 and Attr 2
+     BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_INFO, BT_GATT_CHRC_READ, BT_GATT_PERM_READ, read_hids_info,
+                            NULL, &info),
++    // Attr 3 and Attr 4
+     BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_REPORT_MAP, BT_GATT_CHRC_READ, BT_GATT_PERM_READ_ENCRYPT,
+                            read_hids_report_map, NULL, NULL),
+ 
++    // Attr 5,6 - read_hids_input_report -> write keyboard report
+     BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_REPORT, BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY,
+                            BT_GATT_PERM_READ_ENCRYPT, read_hids_input_report, NULL, NULL),
++    // Attr 7 (keyboard CCC??? ???? ???)
+     BT_GATT_CCC(input_ccc_changed, BT_GATT_PERM_READ_ENCRYPT | BT_GATT_PERM_WRITE_ENCRYPT),
++
++    // Attr 8, Read HID keyboard input ref - input -> .id = ZMK_HID_REPORT_ID_KEYBOARD
+     BT_GATT_DESCRIPTOR(BT_UUID_HIDS_REPORT_REF, BT_GATT_PERM_READ_ENCRYPT, read_hids_report_ref,
+                        NULL, &input),
+ 
++    // Attr 9, 10 - read hid consumer inputreport -> write read_hids_consumer_input_report
+     BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_REPORT, BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY,
+                            BT_GATT_PERM_READ_ENCRYPT, read_hids_consumer_input_report, NULL, NULL),
++
++    // Attr 11 (consumer CCC??? ???? ???)
+     BT_GATT_CCC(input_ccc_changed, BT_GATT_PERM_READ_ENCRYPT | BT_GATT_PERM_WRITE_ENCRYPT),
++
++    // Attr 12 - GATT Descriptor -> consumer_input
+     BT_GATT_DESCRIPTOR(BT_UUID_HIDS_REPORT_REF, BT_GATT_PERM_READ_ENCRYPT, read_hids_report_ref,
+                        NULL, &consumer_input),
+ 
+@@ -226,6 +251,15 @@ BT_GATT_SERVICE_DEFINE(
+                        NULL, &led_indicators),
+ #endif // IS_ENABLED(CONFIG_ZMK_HID_INDICATORS)
+ 
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
++    BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_REPORT, BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY,
++                           BT_GATT_PERM_READ_ENCRYPT, read_hids_generic_desktop_input_report, NULL,
++                           NULL),
++    BT_GATT_CCC(input_ccc_changed, BT_GATT_PERM_READ_ENCRYPT | BT_GATT_PERM_WRITE_ENCRYPT),
++    BT_GATT_DESCRIPTOR(BT_UUID_HIDS_REPORT_REF, BT_GATT_PERM_READ_ENCRYPT, read_hids_report_ref,
++                       NULL, &generic_desktop_input),
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
++
+     BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_CTRL_POINT, BT_GATT_CHRC_WRITE_WITHOUT_RESP,
+                            BT_GATT_PERM_WRITE, NULL, write_ctrl_point, &ctrl_point));
+ 
+@@ -245,6 +279,8 @@ void send_keyboard_report_callback(struct k_work *work) {
+             return;
+         }
+ 
++        LOG_DBG("Attr count: %d", sizeof(attr_hog_svc) / sizeof(struct bt_gatt_attr));
++
+         struct bt_gatt_notify_params notify_params = {
+             .attr = &hog_svc.attrs[5],
+             .data = &report,
+@@ -392,7 +428,7 @@ int zmk_hog_send_mouse_report(struct zmk_hid_mouse_report_body *report) {
+ 
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ 
+ K_MSGQ_DEFINE(zmk_hog_generic_desktop_msgq, sizeof(struct zmk_hid_generic_desktop_report_body),
+               CONFIG_ZMK_BLE_GENERIC_DESKTOP_REPORT_QUEUE_SIZE, 1);
+@@ -405,6 +441,13 @@ void send_generic_desktop_report_callback(struct k_work *work) {
+             return;
+         }
+ 
++        LOG_DBG("Attr counter: %d", sizeof(attr_hog_svc) / sizeof(struct bt_gatt_attr));
++        int attr_count = sizeof(attr_hog_svc) / sizeof(struct bt_gatt_attr);
++        for (int i = 0; i < attr_count; ++i) {
++            LOG_DBG("Attr index: %d", i);
++            LOG_DBG("  Attr uuid: %d", ((const struct bt_uuid_16 *)(attr_hog_svc[i].uuid))->val);
++        }
++        //        for (int i = 0; i <)
+         struct bt_gatt_notify_params notify_params = {
+             .attr = &hog_svc.attrs[13],
+             .data = &report,
+@@ -422,10 +465,28 @@ void send_generic_desktop_report_callback(struct k_work *work) {
+     }
+ };
+ 
+-int zmk_hog_send_generic_desktop_report(struct zmk_hid_generic_desktop_report_body *body) {
++K_WORK_DEFINE(hog_generic_desktop_work, send_generic_desktop_report_callback);
++
++int zmk_hog_send_generic_desktop_report(struct zmk_hid_generic_desktop_report_body *report) {
++    int err = k_msgq_put(&zmk_hog_generic_desktop_msgq, report, K_MSEC(100));
++    if (err) {
++        switch (err) {
++        case -EAGAIN: {
++            LOG_WRN("Generic desktop message queue full, popping first message and queuing again");
++            struct zmk_hid_generic_desktop_report_body discarded_report;
++            k_msgq_get(&zmk_hog_generic_desktop_msgq, &discarded_report, K_NO_WAIT);
++            return zmk_hog_send_generic_desktop_report(report);
++        }
++        default:
++            LOG_WRN("Failed to queue mouse report to send (%d)", err);
++            return err;
++        }
++    }
++
++    k_work_submit_to_queue(&hog_work_q, &hog_generic_desktop_work);
+     return 0;
+ }
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ 
+ static int zmk_hog_init(void) {
+     static const struct k_work_queue_config queue_config = {.name = "HID Over GATT Send Work"};
+diff --git a/app/src/usb_hid.c b/app/src/usb_hid.c
+index c35d23f8440..b6fc7aec702 100644
+--- a/app/src/usb_hid.c
++++ b/app/src/usb_hid.c
+@@ -177,7 +177,7 @@ int zmk_usb_hid_send_mouse_report() {
+ }
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ int zmk_usb_hid_send_generic_desktop_report(void) {
+ #if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+     if (hid_protocol == HID_PROTOCOL_BOOT) {
+@@ -187,7 +187,7 @@ int zmk_usb_hid_send_generic_desktop_report(void) {
+     struct zmk_hid_generic_desktop_report *report = zmk_hid_get_generic_desktop_report();
+     return zmk_usb_hid_send_report((uint8_t *)report, sizeof(*report));
+ }
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_POWER_CONTROLS)
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ 
+ static int zmk_usb_hid_init(void) {
+     hid_dev = device_get_binding("HID_0");
+
+From 75cee59e5e8ea0762a641114e9ec38b61aaf7707 Mon Sep 17 00:00:00 2001
+From: angweekiat <weekiatah@gmail.com>
+Date: Tue, 10 Sep 2024 18:20:52 +0800
+Subject: [PATCH 07/10] clean up
+
+---
+ app/src/hid.c | 22 ++++++++--------------
+ app/src/hog.c | 45 +++++++++++++++++++--------------------------
+ 2 files changed, 27 insertions(+), 40 deletions(-)
+
+diff --git a/app/src/hid.c b/app/src/hid.c
+index 5c4232f1030..3193a929533 100644
+--- a/app/src/hid.c
++++ b/app/src/hid.c
+@@ -360,25 +360,12 @@ int32_t zmk_hid_generic_desktop_code_to_offset(zmk_key_t code) {
+     return -ENOTSUP;
+ }
+ 
+-bool zmk_hid_generic_desktop_is_pressed(zmk_key_t code) {
+-    int32_t offset = zmk_hid_generic_desktop_code_to_offset(code);
+-    if (offset == -ENOTSUP) {
+-        LOG_DBG("Bad mojo 0x%02X", code);
+-        return false;
+-    }
+-    LOG_DBG("Key pressed 0x%02X offset: %d is pressed: %d %d", code, offset,
+-            generic_desktop_report.body.keys[offset / 8] & (1 << (offset % 8)),
+-            generic_desktop_report.body.keys[0]);
+-    return generic_desktop_report.body.keys[offset / 8] & (1 << (offset % 8));
+-}
+-
+ int zmk_hid_generic_desktop_press(zmk_key_t code) {
+     int32_t offset = zmk_hid_generic_desktop_code_to_offset(code);
+     if (offset == -ENOTSUP) {
+         return -ENOTSUP;
+     }
+     TOGGLE_GENERIC_DESKTOP(offset, 1);
+-    zmk_hid_generic_desktop_is_pressed(code);
+     return 0;
+ }
+ 
+@@ -388,7 +375,6 @@ int zmk_hid_generic_desktop_release(zmk_key_t code) {
+         return -ENOTSUP;
+     }
+     TOGGLE_GENERIC_DESKTOP(offset, 0);
+-    zmk_hid_generic_desktop_is_pressed(code);
+     return 0;
+ }
+ 
+@@ -396,6 +382,14 @@ void zmk_hid_generic_desktop_clear(void) {
+     memset(&generic_desktop_report.body, 0, sizeof(generic_desktop_report.body));
+ }
+ 
++bool zmk_hid_generic_desktop_is_pressed(zmk_key_t code) {
++    int32_t offset = zmk_hid_generic_desktop_code_to_offset(code);
++    if (offset == -ENOTSUP) {
++        return false;
++    }
++    return generic_desktop_report.body.keys[offset / 8] & (1 << (offset % 8));
++}
++
+ #endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ 
+ int zmk_hid_press(uint32_t usage) {
+diff --git a/app/src/hog.c b/app/src/hog.c
+index c772cade17a..2a947313a5a 100644
+--- a/app/src/hog.c
++++ b/app/src/hog.c
+@@ -55,6 +55,20 @@ static struct hids_report input = {
+     .type = HIDS_INPUT,
+ };
+ 
++#define ATTR_SIZE_BASE 5
++#define ATTR_SIZE_KEYBOARD 4
++#define ATTR_SIZE_CONSUMER 4
++#define ATTR_SIZE_MOUSE COND_CODE_1(IS_ENABLED(CONFIG_ZMK_MOUSE), (4), (0))
++#define ATTR_SIZE_HID_INDICATORS COND_CODE_1(IS_ENABLED(CONFIG_ZMK_HID_INDICATORS), (3), (0))
++#define ATTR_SIZE_GENERIC_DESKTOP                                                                  \
++    COND_CODE_1(IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC), (4), (0))
++
++#define CHRC_INDEX_KEYBOARD (ATTR_SIZE_BASE)
++#define CHRC_INDEX_CONSUMER (CHRC_INDEX_KEYBOARD + ATTR_SIZE_KEYBOARD)
++#define CHRC_INDEX_MOUSE (CHRC_INDEX_CONSUMER + ATTR_SIZE_CONSUMER)
++#define CHRC_INDEX_HID_INDICATORS (CHRC_INDEX_MOUSE + ATTR_SIZE_MOUSE)
++#define CHRC_INDEX_GENERIC_DESKTOP (CHRC_INDEX_HID_INDICATORS + ATTR_SIZE_HID_INDICATORS)
++
+ #if IS_ENABLED(CONFIG_ZMK_HID_INDICATORS)
+ 
+ static struct hids_report led_indicators = {
+@@ -202,35 +216,23 @@ static ssize_t write_ctrl_point(struct bt_conn *conn, const struct bt_gatt_attr
+ 
+ /* HID Service Declaration */
+ BT_GATT_SERVICE_DEFINE(
+-    hog_svc,
+-    BT_GATT_PRIMARY_SERVICE(BT_UUID_HIDS), // Attr 0
++    hog_svc, BT_GATT_PRIMARY_SERVICE(BT_UUID_HIDS),
+     //    BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_PROTOCOL_MODE, BT_GATT_CHRC_WRITE_WITHOUT_RESP,
+     //                           BT_GATT_PERM_WRITE, NULL, write_proto_mode, &proto_mode),
+-    // Attr 1 and Attr 2
+     BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_INFO, BT_GATT_CHRC_READ, BT_GATT_PERM_READ, read_hids_info,
+                            NULL, &info),
+-    // Attr 3 and Attr 4
+     BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_REPORT_MAP, BT_GATT_CHRC_READ, BT_GATT_PERM_READ_ENCRYPT,
+                            read_hids_report_map, NULL, NULL),
+ 
+-    // Attr 5,6 - read_hids_input_report -> write keyboard report
+     BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_REPORT, BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY,
+                            BT_GATT_PERM_READ_ENCRYPT, read_hids_input_report, NULL, NULL),
+-    // Attr 7 (keyboard CCC??? ???? ???)
+     BT_GATT_CCC(input_ccc_changed, BT_GATT_PERM_READ_ENCRYPT | BT_GATT_PERM_WRITE_ENCRYPT),
+-
+-    // Attr 8, Read HID keyboard input ref - input -> .id = ZMK_HID_REPORT_ID_KEYBOARD
+     BT_GATT_DESCRIPTOR(BT_UUID_HIDS_REPORT_REF, BT_GATT_PERM_READ_ENCRYPT, read_hids_report_ref,
+                        NULL, &input),
+ 
+-    // Attr 9, 10 - read hid consumer inputreport -> write read_hids_consumer_input_report
+     BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_REPORT, BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY,
+                            BT_GATT_PERM_READ_ENCRYPT, read_hids_consumer_input_report, NULL, NULL),
+-
+-    // Attr 11 (consumer CCC??? ???? ???)
+     BT_GATT_CCC(input_ccc_changed, BT_GATT_PERM_READ_ENCRYPT | BT_GATT_PERM_WRITE_ENCRYPT),
+-
+-    // Attr 12 - GATT Descriptor -> consumer_input
+     BT_GATT_DESCRIPTOR(BT_UUID_HIDS_REPORT_REF, BT_GATT_PERM_READ_ENCRYPT, read_hids_report_ref,
+                        NULL, &consumer_input),
+ 
+@@ -279,10 +281,8 @@ void send_keyboard_report_callback(struct k_work *work) {
+             return;
+         }
+ 
+-        LOG_DBG("Attr count: %d", sizeof(attr_hog_svc) / sizeof(struct bt_gatt_attr));
+-
+         struct bt_gatt_notify_params notify_params = {
+-            .attr = &hog_svc.attrs[5],
++            .attr = &hog_svc.attrs[CHRC_INDEX_KEYBOARD],
+             .data = &report,
+             .len = sizeof(report),
+         };
+@@ -334,7 +334,7 @@ void send_consumer_report_callback(struct k_work *work) {
+         }
+ 
+         struct bt_gatt_notify_params notify_params = {
+-            .attr = &hog_svc.attrs[9],
++            .attr = &hog_svc.attrs[CHRC_INDEX_CONSUMER],
+             .data = &report,
+             .len = sizeof(report),
+         };
+@@ -387,7 +387,7 @@ void send_mouse_report_callback(struct k_work *work) {
+         }
+ 
+         struct bt_gatt_notify_params notify_params = {
+-            .attr = &hog_svc.attrs[13],
++            .attr = &hog_svc.attrs[CHRC_INDEX_MOUSE],
+             .data = &report,
+             .len = sizeof(report),
+         };
+@@ -441,15 +441,8 @@ void send_generic_desktop_report_callback(struct k_work *work) {
+             return;
+         }
+ 
+-        LOG_DBG("Attr counter: %d", sizeof(attr_hog_svc) / sizeof(struct bt_gatt_attr));
+-        int attr_count = sizeof(attr_hog_svc) / sizeof(struct bt_gatt_attr);
+-        for (int i = 0; i < attr_count; ++i) {
+-            LOG_DBG("Attr index: %d", i);
+-            LOG_DBG("  Attr uuid: %d", ((const struct bt_uuid_16 *)(attr_hog_svc[i].uuid))->val);
+-        }
+-        //        for (int i = 0; i <)
+         struct bt_gatt_notify_params notify_params = {
+-            .attr = &hog_svc.attrs[13],
++            .attr = &hog_svc.attrs[CHRC_INDEX_GENERIC_DESKTOP],
+             .data = &report,
+             .len = sizeof(report),
+         };
+
+From 2683b8defd4b343d4684423328c05a469dfb7102 Mon Sep 17 00:00:00 2001
+From: angweekiat <weekiatah@gmail.com>
+Date: Tue, 10 Sep 2024 18:29:06 +0800
+Subject: [PATCH 08/10] More cleanup
+
+---
+ app/include/zmk/hid.h | 31 +++++++++++--------------------
+ app/src/hid.c         | 12 ++++++------
+ app/src/hog.c         |  3 ---
+ 3 files changed, 17 insertions(+), 29 deletions(-)
+
+diff --git a/app/include/zmk/hid.h b/app/include/zmk/hid.h
+index 007cef125c6..1354defcf67 100644
+--- a/app/include/zmk/hid.h
++++ b/app/include/zmk/hid.h
+@@ -79,31 +79,22 @@
+ #define ZMK_HID_REPORT_ID_GENERIC_DESKTOP 0x04
+ 
+ static const uint8_t zmk_hid_report_desc[] = {
+-    HID_USAGE_PAGE(HID_USAGE_GEN_DESKTOP), // HID Usage page item following usage are within gen
+-                                           // desktop page
+-    HID_USAGE(HID_USAGE_GD_KEYBOARD),      // 0x06 specify usage of keyboard
+-    // Start of keyboard collection
+-    HID_COLLECTION(HID_COLLECTION_APPLICATION), // keyboard collection? Start collection (group)
+-    HID_REPORT_ID(ZMK_HID_REPORT_ID_KEYBOARD),  // 0x01 Set zmk id, doesn't matter
+-
+-    // Modifier keys // [ Account for 1st byte in report ]
++    HID_USAGE_PAGE(HID_USAGE_GEN_DESKTOP),
++    HID_USAGE(HID_USAGE_GD_KEYBOARD),
++    HID_COLLECTION(HID_COLLECTION_APPLICATION),
++    HID_REPORT_ID(ZMK_HID_REPORT_ID_KEYBOARD),
+     HID_USAGE_PAGE(HID_USAGE_KEY),
+     HID_USAGE_MIN8(HID_USAGE_KEY_KEYBOARD_LEFTCONTROL),
+     HID_USAGE_MAX8(HID_USAGE_KEY_KEYBOARD_RIGHT_GUI),
+     HID_LOGICAL_MIN8(0x00),
+     HID_LOGICAL_MAX8(0x01),
+-    HID_REPORT_SIZE(0x01),  // Number of bits in 1 field (1)
+-    HID_REPORT_COUNT(0x08), // Number of data fields included in the report (8), so 8x1bits = 1 byte
+-    HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR |
+-              ZMK_HID_MAIN_VAL_ABS), // Input (Data, Variable, Absolute)
+-
+-    // Reserved byte [ Account for 2nd in report ]
+-    HID_USAGE_PAGE(HID_USAGE_KEY), // New usage page
+-    HID_REPORT_SIZE(0x08),         // Each field is 8 bits
+-    HID_REPORT_COUNT(0x01),        // Only 1 field
+-                                   // Reserved byte?
+-    HID_INPUT(ZMK_HID_MAIN_VAL_CONST | ZMK_HID_MAIN_VAL_VAR |
+-              ZMK_HID_MAIN_VAL_ABS), // Input field for reserved byte (Const, Variable, Absolute)
++    HID_REPORT_SIZE(0x01),
++    HID_REPORT_COUNT(0x08),
++    HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
++    HID_USAGE_PAGE(HID_USAGE_KEY),
++    HID_REPORT_SIZE(0x08),
++    HID_REPORT_COUNT(0x01),
++    HID_INPUT(ZMK_HID_MAIN_VAL_CONST | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
+ 
+ #if IS_ENABLED(CONFIG_ZMK_HID_INDICATORS)
+ 
+diff --git a/app/src/hid.c b/app/src/hid.c
+index 3193a929533..07162949b4b 100644
+--- a/app/src/hid.c
++++ b/app/src/hid.c
+@@ -503,14 +503,14 @@ struct zmk_hid_keyboard_report *zmk_hid_get_keyboard_report(void) { return &keyb
+ 
+ struct zmk_hid_consumer_report *zmk_hid_get_consumer_report(void) { return &consumer_report; }
+ 
+-#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+-struct zmk_hid_generic_desktop_report *zmk_hid_get_generic_desktop_report(void) {
+-    return &generic_desktop_report;
+-}
+-#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+-
+ #if IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
+ struct zmk_hid_mouse_report *zmk_hid_get_mouse_report(void) { return &mouse_report; }
+ 
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
++
++#if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
++struct zmk_hid_generic_desktop_report *zmk_hid_get_generic_desktop_report(void) {
++    return &generic_desktop_report;
++}
++#endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+\ No newline at end of file
+diff --git a/app/src/hog.c b/app/src/hog.c
+index 2a947313a5a..3f9257d33cc 100644
+--- a/app/src/hog.c
++++ b/app/src/hog.c
+@@ -185,9 +185,6 @@ static ssize_t read_hids_generic_desktop_input_report(struct bt_conn *conn,
+                              sizeof(struct zmk_hid_generic_desktop_report_body));
+ }
+ #endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+-
+-#define MOUSE_ATTR_SIZE COND_CODE_1(IS_ENABLED(CONFIG_ZMK_MOUSE), (1), (0))
+-
+ // static ssize_t write_proto_mode(struct bt_conn *conn,
+ //                                 const struct bt_gatt_attr *attr,
+ //                                 const void *buf, uint16_t len, uint16_t offset,
+
+From 988375dae0c6b3882f18d5b5deb14c3b2828b497 Mon Sep 17 00:00:00 2001
+From: angweekiat <weekiatah@gmail.com>
+Date: Tue, 10 Sep 2024 18:34:02 +0800
+Subject: [PATCH 09/10] cleanup whitespaces
+
+---
+ app/include/zmk/hid.h     | 3 ++-
+ app/include/zmk/usb_hid.h | 2 --
+ 2 files changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/app/include/zmk/hid.h b/app/include/zmk/hid.h
+index 1354defcf67..79eea3dfe0f 100644
+--- a/app/include/zmk/hid.h
++++ b/app/include/zmk/hid.h
+@@ -88,9 +88,11 @@ static const uint8_t zmk_hid_report_desc[] = {
+     HID_USAGE_MAX8(HID_USAGE_KEY_KEYBOARD_RIGHT_GUI),
+     HID_LOGICAL_MIN8(0x00),
+     HID_LOGICAL_MAX8(0x01),
++
+     HID_REPORT_SIZE(0x01),
+     HID_REPORT_COUNT(0x08),
+     HID_INPUT(ZMK_HID_MAIN_VAL_DATA | ZMK_HID_MAIN_VAL_VAR | ZMK_HID_MAIN_VAL_ABS),
++
+     HID_USAGE_PAGE(HID_USAGE_KEY),
+     HID_REPORT_SIZE(0x08),
+     HID_REPORT_COUNT(0x01),
+@@ -135,7 +137,6 @@ static const uint8_t zmk_hid_report_desc[] = {
+ #endif
+ 
+     HID_END_COLLECTION,
+-
+     HID_USAGE_PAGE(HID_USAGE_CONSUMER),
+     HID_USAGE(HID_USAGE_CONSUMER_CONSUMER_CONTROL),
+     HID_COLLECTION(HID_COLLECTION_APPLICATION),
+diff --git a/app/include/zmk/usb_hid.h b/app/include/zmk/usb_hid.h
+index 5090238e44e..97d6d172785 100644
+--- a/app/include/zmk/usb_hid.h
++++ b/app/include/zmk/usb_hid.h
+@@ -10,11 +10,9 @@
+ 
+ int zmk_usb_hid_send_keyboard_report(void);
+ int zmk_usb_hid_send_consumer_report(void);
+-
+ #if IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+ int zmk_usb_hid_send_generic_desktop_report(void);
+ #endif // IS_ENABLED(CONFIG_ZMK_HID_GENERIC_DESKTOP_USAGES_BASIC)
+-
+ #if IS_ENABLED(CONFIG_ZMK_MOUSE)
+ int zmk_usb_hid_send_mouse_report(void);
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+
+From 16373a0d29b1d742c86b0f7148f82c4bcbdff57a Mon Sep 17 00:00:00 2001
+From: angweekiat <weekiatah@gmail.com>
+Date: Sat, 14 Sep 2024 19:43:28 +0800
+Subject: [PATCH 10/10] clang-format
+
+---
+ app/src/endpoints.c |  4 +++-
+ app/src/hid.c       | 12 +++++++++---
+ 2 files changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/app/src/endpoints.c b/app/src/endpoints.c
+index b4f47737e65..ab331d3940e 100644
+--- a/app/src/endpoints.c
++++ b/app/src/endpoints.c
+@@ -116,7 +116,9 @@ int zmk_endpoints_toggle_transport(void) {
+     return zmk_endpoints_select_transport(new_transport);
+ }
+ 
+-struct zmk_endpoint_instance zmk_endpoints_selected(void) { return current_instance; }
++struct zmk_endpoint_instance zmk_endpoints_selected(void) {
++    return current_instance;
++}
+ 
+ static int send_keyboard_report(void) {
+     switch (current_instance.transport) {
+diff --git a/app/src/hid.c b/app/src/hid.c
+index 07162949b4b..0db4ef621cc 100644
+--- a/app/src/hid.c
++++ b/app/src/hid.c
+@@ -499,13 +499,19 @@ void zmk_hid_mouse_clear(void) { memset(&mouse_report.body, 0, sizeof(mouse_repo
+ 
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
+-struct zmk_hid_keyboard_report *zmk_hid_get_keyboard_report(void) { return &keyboard_report; }
++struct zmk_hid_keyboard_report *zmk_hid_get_keyboard_report(void) {
++    return &keyboard_report;
++}
+ 
+-struct zmk_hid_consumer_report *zmk_hid_get_consumer_report(void) { return &consumer_report; }
++struct zmk_hid_consumer_report *zmk_hid_get_consumer_report(void) {
++    return &consumer_report;
++}
+ 
+ #if IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
+-struct zmk_hid_mouse_report *zmk_hid_get_mouse_report(void) { return &mouse_report; }
++struct zmk_hid_mouse_report *zmk_hid_get_mouse_report(void) {
++    return &mouse_report;
++}
+ 
+ #endif // IS_ENABLED(CONFIG_ZMK_MOUSE)
+ 
