@@ -8,7 +8,8 @@ endif()
 zephyr_include_directories(include)
 
 target_sources_ifdef(CONFIG_TOUCAN_DEBUG_RPC app PRIVATE
-  src/debug_rpc.c)
+  src/debug_rpc.c
+  src/behavior_debug_inject.c)
 target_sources_ifdef(CONFIG_TOUCAN_DEBUG_QUARANTINE app PRIVATE
   src/debug_quarantine.c)
 if(CONFIG_TOUCAN_DEBUG_QUARANTINE)

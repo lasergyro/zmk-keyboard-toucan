@@ -6,6 +6,16 @@
     status = "disabled";
 };
 
+/ {
+    behaviors {
+        dbginj: dbginj {
+            compatible = "zmk,behavior-debug-inject";
+            #binding-cells = <2>;
+            label = "DBGINJ";
+        };
+    };
+};
+
 &default_transform {
     col-offset = <6>;
 };

@@ -24,6 +24,11 @@
 #include <dt-bindings/zmk/reset.h>
 #include <zmk/events/position_state_changed.h>
 #include <zmk/split/peripheral.h>
+#include <zmk/hid.h>
+#include <dt-bindings/zmk/hid_usage_pages.h>
+#if defined(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
+#include <zmk/split/central.h>
+#endif
 
 #include <toucan/debug_quarantine.h>
 #include <zmk/keymap.h>
@@ -57,6 +62,8 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #if defined(CONFIG_SHIELD_TOUCAN_RIGHT)
 #define TOUCAN_DEBUG_TOUCH_DEVICE_NODE DT_NODELABEL(glidepoint)
+// Forward declaration to access the gesture injection hook in the Cirque driver
+void cirque_pinnacle_inject_abs(const struct device *dev, int16_t x, int16_t y, int8_t z);
 #elif defined(CONFIG_SHIELD_TOUCAN_LEFT)
 #define TOUCAN_DEBUG_TOUCH_DEVICE_NODE DT_NODELABEL(glidepoint_split)
 #endif
@@ -78,7 +85,45 @@ static struct k_thread toucan_debug_rpc_thread;
 
 static char rx_line[TOUCAN_DEBUG_RPC_CMD_MAX_LEN];
 static size_t rx_len;
+
 static bool rx_overflow;
+
+enum rpc_mode {
+    MODE_IDLE,
+    MODE_STREAM_RX,
+    MODE_EXECUTING,
+    MODE_RECORDING
+};
+static enum rpc_mode current_mode = MODE_IDLE;
+
+#define RPC_QUEUE_CAPACITY 128
+#define TAIL_TIMEOUT_MS 500
+
+struct rpc_input_event {
+    char type;
+    uint16_t delay_ms;
+    int32_t val1;
+    int32_t val2;
+    int32_t val3;
+};
+
+struct rpc_output_event {
+    char type;
+    uint16_t delay_ms;
+    int32_t val1;
+    int32_t val2;
+};
+
+static struct rpc_input_event input_queue[RPC_QUEUE_CAPACITY];
+static size_t input_queue_len = 0;
+
+static struct rpc_output_event output_queue[RPC_QUEUE_CAPACITY];
+static size_t output_queue_len = 0;
+
+static size_t current_input_idx = 0;
+static uint32_t last_event_time = 0;
+static struct k_work_delayable execute_work;
+static struct k_work_delayable tail_timeout_work;
 
 static void uart_write_str(const char *text) {
     LOG_INF("Debug RPC reply: %s", text);
@@ -198,23 +243,37 @@ static int inject_touch_state(bool pressed) {
 #endif
 }
 
-static int inject_touch_abs(int32_t x, int32_t y) {
+static int inject_touch_abs(int32_t x, int32_t y, int32_t z) {
 #if defined(TOUCAN_DEBUG_TOUCH_DEVICE_NODE)
     if (!device_is_ready(touch_inject_device)) {
         return -ENODEV;
     }
 
-    LOG_INF("Injected debug abs event: x=%d y=%d", x, y);
+    LOG_INF("Injected debug abs event: x=%d y=%d z=%d", x, y, z);
 
-    int ret = input_report_abs(touch_inject_device, INPUT_ABS_X, x, false, K_FOREVER);
-    if (ret < 0) {
-        return ret;
-    }
-
-    return input_report_abs(touch_inject_device, INPUT_ABS_Y, y, true, K_FOREVER);
+#if defined(CONFIG_SHIELD_TOUCAN_RIGHT)
+    cirque_pinnacle_inject_abs(touch_inject_device, x, y, z);
+    return 0;
+#elif defined(CONFIG_SHIELD_TOUCAN_LEFT) && defined(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
+    struct zmk_behavior_binding binding = {
+        .behavior_dev = "DBGINJ",
+        .param1 = (y << 16) | (x & 0xFFFF),
+        .param2 = z
+    };
+    struct zmk_behavior_binding_event event = {
+        .position = 0,
+        .timestamp = k_uptime_get()
+    };
+    
+    // source=0 is the right half
+    return zmk_split_central_invoke_behavior(0, &binding, event, true);
+#else
+    return -ENOTSUP;
+#endif
 #else
     ARG_UNUSED(x);
     ARG_UNUSED(y);
+    ARG_UNUSED(z);
     return -ENOTSUP;
 #endif
 }
@@ -434,21 +493,27 @@ static void process_abs_command(char *args) {
     char *saveptr = NULL;
     char *x_text = strtok_r(args, " ", &saveptr);
     char *y_text = strtok_r(NULL, " ", &saveptr);
+    char *z_text = strtok_r(NULL, " ", &saveptr);
 
-    if (!x_text || !y_text || strtok_r(NULL, " ", &saveptr)) {
-        uart_write_str("ERR usage: abs <x> <y>");
+    if (!x_text || !y_text) {
+        uart_write_str("ERR usage: abs <x> <y> [z]");
         return;
     }
 
     long x = 0;
     long y = 0;
+    long z = 50;
 
     if (parse_long_arg(x_text, &x) < 0 || parse_long_arg(y_text, &y) < 0) {
         uart_write_str("ERR invalid abs arguments");
         return;
     }
+    if (z_text && parse_long_arg(z_text, &z) < 0) {
+        uart_write_str("ERR invalid abs z argument");
+        return;
+    }
 
-    int ret = inject_touch_abs((int32_t)x, (int32_t)y);
+    int ret = inject_touch_abs((int32_t)x, (int32_t)y, (int32_t)z);
     if (ret < 0) {
         uart_write_str("ERR abs inject failed");
         return;
@@ -625,12 +690,225 @@ static void process_layers_command(void) {
 #endif
 }
 
+
+static void dump_output_queue(const char* verb) {
+    current_mode = MODE_IDLE;
+    for (size_t i = 0; i < output_queue_len; i++) {
+        char buf[64];
+        struct rpc_output_event *ev = &output_queue[i];
+        snprintf(buf, sizeof(buf), "%c,%u,%d,%d", ev->type, ev->delay_ms, (int)ev->val1, (int)ev->val2);
+        uart_write_str(buf);
+    }
+    uart_write_str(".");
+    char buf[32];
+    snprintf(buf, sizeof(buf), "OK %s %zu", verb, output_queue_len);
+    uart_write_str(buf);
+}
+
+static void tail_timeout_handler(struct k_work *work) {
+    if (current_mode == MODE_EXECUTING) {
+        dump_output_queue("qo");
+    }
+}
+
+static void execute_handler(struct k_work *work) {
+    if (current_mode != MODE_EXECUTING) return;
+    if (current_input_idx >= input_queue_len) return;
+
+    struct rpc_input_event *ev = &input_queue[current_input_idx];
+    
+    if (ev->type == 'A') {
+        #if defined(TOUCAN_DEBUG_TOUCH_DEVICE_NODE)
+        inject_touch_abs(ev->val1, ev->val2, ev->val3);
+        #endif
+    } else if (ev->type == 'K') {
+        #if defined(TOUCAN_DEBUG_TOUCH_DEVICE_NODE)
+        if (device_is_ready(touch_inject_device)) {
+            input_report_key(touch_inject_device, ev->val1, ev->val2, true, K_FOREVER);
+        }
+        #endif
+    } else if (ev->type == 'P') {
+        inject_key_position(ev->val1, ev->val2);
+    }
+    
+    current_input_idx++;
+    if (current_input_idx < input_queue_len) {
+        k_work_reschedule(&execute_work, K_MSEC(input_queue[current_input_idx].delay_ms));
+    } else {
+        k_work_reschedule(&tail_timeout_work, K_MSEC(TAIL_TIMEOUT_MS));
+    }
+}
+
+static uint8_t last_kb_keys[CONFIG_ZMK_HID_KEYBOARD_REPORT_SIZE] = {0};
+static zmk_mod_flags_t last_kb_mods = 0;
+static zmk_mouse_button_flags_t last_mouse_buttons = 0;
+
+static void append_output_event(char type, uint16_t delay, int32_t val1, int32_t val2) {
+    if (output_queue_len >= RPC_QUEUE_CAPACITY) {
+        return;
+    }
+    struct rpc_output_event *out = &output_queue[output_queue_len++];
+    out->type = type;
+    out->delay_ms = delay;
+    out->val1 = val1;
+    out->val2 = val2;
+
+    if (current_mode == MODE_EXECUTING && current_input_idx >= input_queue_len) {
+        k_work_reschedule(&tail_timeout_work, K_MSEC(TAIL_TIMEOUT_MS));
+    }
+}
+
+void toucan_debug_rpc_capture_hid_report(uint16_t usage_page) {
+    if (current_mode != MODE_EXECUTING && current_mode != MODE_RECORDING) {
+        return;
+    }
+
+    if (usage_page != HID_USAGE_KEY) {
+        return;
+    }
+
+    uint32_t now = k_uptime_get_32();
+    uint32_t delay = now - last_event_time;
+    if (delay > 65535) delay = 65535;
+    last_event_time = now;
+    
+    bool has_delay = true;
+
+    struct zmk_hid_keyboard_report_body *report = &zmk_hid_get_keyboard_report()->body;
+
+    // Check modifiers (0xE0 to 0xE7)
+    for (int i = 0; i < 8; i++) {
+        bool was_pressed = (last_kb_mods & (1 << i)) != 0;
+        bool is_pressed = (report->modifiers & (1 << i)) != 0;
+        if (was_pressed != is_pressed) {
+            append_output_event('K', has_delay ? (uint16_t)delay : 0, 0xE0 + i, is_pressed ? 1 : 0);
+            has_delay = false;
+        }
+    }
+    last_kb_mods = report->modifiers;
+
+    // Check newly pressed keys
+    for (int i = 0; i < CONFIG_ZMK_HID_KEYBOARD_REPORT_SIZE; i++) {
+        uint8_t key = report->keys[i];
+        if (key == 0) continue;
+        
+        bool found = false;
+        for (int j = 0; j < CONFIG_ZMK_HID_KEYBOARD_REPORT_SIZE; j++) {
+            if (last_kb_keys[j] == key) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            append_output_event('K', has_delay ? (uint16_t)delay : 0, key, 1);
+            has_delay = false;
+        }
+    }
+
+    // Check newly released keys
+    for (int i = 0; i < CONFIG_ZMK_HID_KEYBOARD_REPORT_SIZE; i++) {
+        uint8_t key = last_kb_keys[i];
+        if (key == 0) continue;
+        
+        bool found = false;
+        for (int j = 0; j < CONFIG_ZMK_HID_KEYBOARD_REPORT_SIZE; j++) {
+            if (report->keys[j] == key) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            append_output_event('K', has_delay ? (uint16_t)delay : 0, key, 0);
+            has_delay = false;
+        }
+    }
+
+    memcpy(last_kb_keys, report->keys, sizeof(last_kb_keys));
+}
+
+void toucan_debug_rpc_capture_mouse_report(void) {
+    if (current_mode != MODE_EXECUTING && current_mode != MODE_RECORDING) {
+        return;
+    }
+
+    uint32_t now = k_uptime_get_32();
+    uint32_t delay = now - last_event_time;
+    if (delay > 65535) delay = 65535;
+    last_event_time = now;
+    
+    bool has_delay = true;
+
+#if IS_ENABLED(CONFIG_ZMK_POINTING)
+    struct zmk_hid_mouse_report_body *report = &zmk_hid_get_mouse_report()->body;
+
+    // Check buttons (0 to 4 max usually)
+    for (int i = 0; i < 5; i++) {
+        bool was_pressed = (last_mouse_buttons & (1 << i)) != 0;
+        bool is_pressed = (report->buttons & (1 << i)) != 0;
+        if (was_pressed != is_pressed) {
+            append_output_event('B', has_delay ? (uint16_t)delay : 0, i + 1, is_pressed ? 1 : 0);
+            has_delay = false;
+        }
+    }
+    last_mouse_buttons = report->buttons;
+
+    if (report->d_x != 0 || report->d_y != 0) {
+        append_output_event('M', has_delay ? (uint16_t)delay : 0, report->d_x, report->d_y);
+        has_delay = false;
+    }
+
+    if (report->d_scroll_x != 0 || report->d_scroll_y != 0) {
+        append_output_event('S', has_delay ? (uint16_t)delay : 0, report->d_scroll_x, report->d_scroll_y);
+        has_delay = false;
+    }
+#endif
+}
+
+
 static void process_command(const struct toucan_debug_rpc_cmd *cmd) {
+
     LOG_DBG("Debug RPC command: %s", cmd->text);
 
     char command[TOUCAN_DEBUG_RPC_CMD_MAX_LEN];
     strncpy(command, cmd->text, sizeof(command) - 1);
     command[sizeof(command) - 1] = '\0';
+
+
+    if (current_mode == MODE_STREAM_RX) {
+        if (strcmp(command, ".") == 0) {
+            current_mode = MODE_IDLE;
+            char buf[32];
+            snprintf(buf, sizeof(buf), "OK qi done %zu", input_queue_len);
+            uart_write_str(buf);
+        } else {
+            if (input_queue_len < RPC_QUEUE_CAPACITY) {
+                struct rpc_input_event *ev = &input_queue[input_queue_len];
+                char *saveptr;
+                char *type_str = strtok_r(command, ",", &saveptr);
+                char *delay_str = strtok_r(NULL, ",", &saveptr);
+                char *v1_str = strtok_r(NULL, ",", &saveptr);
+                char *v2_str = strtok_r(NULL, ",", &saveptr);
+                char *v3_str = strtok_r(NULL, ",", &saveptr);
+                if (type_str && delay_str && v1_str && v2_str) {
+                    ev->type = type_str[0];
+                    ev->delay_ms = atoi(delay_str);
+                    ev->val1 = atoi(v1_str);
+                    ev->val2 = atoi(v2_str);
+                    ev->val3 = v3_str ? atoi(v3_str) : 0;
+                    input_queue_len++;
+                    char buf[32];
+                    snprintf(buf, sizeof(buf), "OK qi %zu", input_queue_len);
+                    uart_write_str(buf);
+                } else {
+                    uart_write_str("ERR qi format");
+                }
+            } else {
+                LOG_WRN("Input queue full");
+                uart_write_str("ERR qi full");
+            }
+        }
+        return;
+    }
 
     char *saveptr = NULL;
     char *verb = strtok_r(command, " ", &saveptr);
@@ -651,7 +929,42 @@ static void process_command(const struct toucan_debug_rpc_cmd *cmd) {
         return;
     }
 
+
+    if (strcmp(verb, "qi") == 0) {
+        current_mode = MODE_STREAM_RX;
+        input_queue_len = 0;
+        uart_write_str("(ready...)");
+        return;
+    }
+
+    if (strcmp(verb, "qo") == 0) {
+        current_mode = MODE_EXECUTING;
+        output_queue_len = 0;
+        current_input_idx = 0;
+        last_event_time = k_uptime_get_32();
+        if (input_queue_len > 0) {
+            k_work_reschedule(&execute_work, K_MSEC(input_queue[0].delay_ms));
+        } else {
+            k_work_reschedule(&tail_timeout_work, K_MSEC(TAIL_TIMEOUT_MS));
+        }
+        return;
+    }
+
+    if (strcmp(verb, "rstart") == 0) {
+        current_mode = MODE_RECORDING;
+        output_queue_len = 0;
+        last_event_time = k_uptime_get_32();
+        uart_write_str("OK rstart");
+        return;
+    }
+    
+    if (strcmp(verb, "rend") == 0) {
+        dump_output_queue("rend");
+        return;
+    }
+
     if (strcmp(verb, "help") == 0) {
+
         uart_write_str(
             "OK commands: ping identity reset bootloader quarantine layers key tap touch abs move"
             " get set help");
@@ -746,7 +1059,12 @@ static int toucan_debug_rpc_init(void) {
         return -ENODEV;
     }
 
+
+    k_work_init_delayable(&execute_work, execute_handler);
+    k_work_init_delayable(&tail_timeout_work, tail_timeout_handler);
+
     int ret = uart_irq_callback_user_data_set(debug_rpc_uart, uart_cb, NULL);
+
     if (ret < 0) {
         LOG_ERR("Failed to register debug RPC UART callback: %d", ret);
         return ret;

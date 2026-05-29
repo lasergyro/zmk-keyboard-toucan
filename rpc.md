@@ -32,31 +32,31 @@ Each event is one line:
 
 ### Commands
 
-#### `pad_qi` — Queue Input
+#### `qi` — Queue Input
 PC sends a stream of input events; firmware stores them in the scenario queue.
 ```
-PC → FW:  pad_qi
+PC → FW:  qi
 FW → PC:  (ready — firmware enters stream-receive mode)
 PC → FW:  A,0,512,512,50
 PC → FW:  A,10,552,512,50
 PC → FW:  K,30,330,0
 PC → FW:  .
-FW → PC:  OK pad_qi 3
+FW → PC:  OK qi 3
 ```
 
-#### `pad_qo` — Queue Output (execute + retrieve)
+#### `qo` — Queue Output (execute + retrieve)
 Firmware executes the queued input events with firmware-accurate timing, captures all output events emitted during execution, then streams them back. Also serves as implicit queue clear (calling with empty queue drains/resets state).
 ```
-PC → FW:  pad_qo
+PC → FW:  qo
 FW → PC:  M,5,-40,0
 FW → PC:  K,120,272,1
 FW → PC:  K,5,272,0
 FW → PC:  .
-FW → PC:  OK pad_qo 3
+FW → PC:  OK qo 3
 ```
 
 #### `rstart` — Record Start
-Firmware begins recording real Pinnacle input events into an internal ring buffer (same format as `pad_qi` stream).
+Firmware begins recording real Pinnacle input events into an internal ring buffer (same format as `qi` stream).
 ```
 PC → FW:  rstart
 FW → PC:  OK rstart
@@ -84,13 +84,16 @@ FW → PC:  OK rend 3
 | `reset` | Cold reboot |
 | `bootloader` | Enter UF2 bootloader |
 | `quarantine <on\|off\|status>` | Suppress HID output (captures in log instead) |
+| `layers` | Returns the active layer state bitmask. Central half only. |
+| `get [param]` | Get touchpad gesture tuning parameter (or list all if no param). Right half only. |
+| `set <param> <value>` | Set and persist touchpad gesture tuning parameter. Right half only. |
 | `key <pos> <down\|up>` | Inject key position event |
 | `tap <pos>` | Quick key press+release |
-| `touch <down\|up>` | Inject BTN_TOUCH event *(removed after Task 4)* |
-| `abs <x> <y>` | Inject ABS_X + ABS_Y pair *(removed after Task 4)* |
-| `move <dx> <dy>` | Inject REL_X + REL_Y pair *(removed after Task 4)* |
-| `pad_qi` | Stream input events into scenario queue |
-| `pad_qo` | Execute queue, stream output events back |
+| `touch <down\|up>` | Inject BTN_TOUCH event (manual debug) |
+| `abs <x> <y> [z]` | Inject ABS_X + ABS_Y + Z pair (manual debug) |
+| `move <dx> <dy>` | Inject REL_X + REL_Y pair (manual debug) |
+| `qi` | Stream input events into scenario queue |
+| `qo` | Execute queue, stream output events back |
 | `rstart` | Start recording real Pinnacle input |
 | `rend` | Stop recording, stream captured events back |
 | `help` | List commands |

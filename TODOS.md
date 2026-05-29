@@ -1,2 +1,5 @@
 # TODOs
-- implement the system do not disturb key and place it in the empty spot of the right half of the fn layer by using the generic_desktop page of the hid codes (see https://github.com/zmkfirmware/zmk/pull/2473 and https://www.usb.org/sites/default/files/hut1_5.pdf ; add the pdf to the references folder and write a generic_desktop.md and reference it from plan.md)
+ - [x] remove the extra debug line below the layer name in the display.
+ - find in the code, verify the code, and document in the README.md how to exit sleep mode.
+ - move the skills about this repo if possible so they are only active in this repo.
+ - check a clean checkout (use an empty folder on this machine, don't destroy the original) can compile the same exact artifacts (release and debug).

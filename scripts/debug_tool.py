@@ -302,7 +302,12 @@ def send_rpc(args: list[str]) -> int:
     payload = " ".join(args)
     log(f"Sending RPC '{payload}' to {device.path}")
     try:
-        lines = request_lines(device.path, payload)
+        session = SerialRPCSession(device.path, timeout_s=5.0)
+        session.open()
+        try:
+            lines = session.request_lines(payload)
+        finally:
+            session.close()
     except TimeoutError as exc:
         return die(str(exc))
     except Exception as exc:
@@ -471,20 +476,34 @@ class RPCSession:
         return self.session.request_lines(command)
 
     def run_scenario(self, scenario: list[str]) -> list[str]:
-        """Queue and execute a scenario via pad_qi/pad_qo."""
+        """Queue and execute a scenario via qi/qo."""
         handle = self.session.handle
         assert handle is not None
         
         # 1. Queue scenario
-        handle.write(b"pad_qi\n")
-        handle.readline() # Consume (ready...)
+        handle.write(b"qi\n")
+        handle.flush()
+        ready_line = handle.readline().decode("utf-8", "ignore").strip()
+        
         for line in scenario:
             handle.write(line.encode("utf-8") + b"\n")
+            handle.flush()
+            # Wait for ACK
+            ack = handle.readline().decode("utf-8", "ignore").strip()
+            if not ack.startswith("OK qi"):
+                raise RuntimeError(f"Failed to queue line '{line}', got: '{ack}'")
+                
         handle.write(b".\n")
-        handle.readline() # Consume OK pad_qi
+        handle.flush()
+        
+        # Wait for done ACK
+        done_ack = handle.readline().decode("utf-8", "ignore").strip()
+        if not done_ack.startswith("OK qi done"):
+            raise RuntimeError(f"Failed to complete queueing, got: '{done_ack}'")
         
         # 2. Execute and capture
-        handle.write(b"pad_qo\n")
+        handle.write(b"qo\n")
+        handle.flush()
         
         output = []
         # Wait up to 10s for the scenario to finish and stream back results
@@ -493,9 +512,10 @@ class RPCSession:
             line = handle.readline().decode("utf-8", "ignore").strip()
             if not line:
                 continue
-            if line.startswith("OK pad_qo"):
+            if "OK qo" in line:
                 break
-            output.append(line)
+            if line != ".":
+                output.append(line)
             
         return output
 

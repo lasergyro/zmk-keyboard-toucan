@@ -20,6 +20,9 @@ static bool quarantine_enabled = false;
 int __real_zmk_endpoints_send_report(uint16_t usage_page);
 int __real_zmk_endpoints_send_mouse_report(void);
 
+extern void toucan_debug_rpc_capture_hid_report(uint16_t usage_page);
+extern void toucan_debug_rpc_capture_mouse_report(void);
+
 bool toucan_debug_quarantine_is_enabled(void) { return quarantine_enabled; }
 
 static void quarantine_clear_reports_if_supported(void) {
@@ -47,6 +50,8 @@ int toucan_debug_quarantine_set_enabled(bool enabled) {
 }
 
 int __wrap_zmk_endpoints_send_report(uint16_t usage_page) {
+    toucan_debug_rpc_capture_hid_report(usage_page);
+
     if (quarantine_enabled) {
         LOG_INF("Debug quarantine dropped HID report usage page 0x%02X", usage_page);
         return 0;
@@ -56,6 +61,8 @@ int __wrap_zmk_endpoints_send_report(uint16_t usage_page) {
 }
 
 int __wrap_zmk_endpoints_send_mouse_report(void) {
+    toucan_debug_rpc_capture_mouse_report();
+
     if (quarantine_enabled) {
         const struct zmk_hid_mouse_report_body *report = &zmk_hid_get_mouse_report()->body;
         LOG_INF(

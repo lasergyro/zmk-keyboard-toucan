@@ -195,8 +195,19 @@ All automated tests must adhere to the following architecture:
 
 ## Agent Command Guidelines
 
+**Knowledge Item Reference**: The core commands and workflow constraints for this project have been extracted to a Knowledge Item at [commands.md](file:///Users/ma/.gemini/antigravity-ide/knowledge/toucan_basic_commands/artifacts/commands.md). Ensure you review it if context is lost.
+
 To prevent repetitive mistakes during future sessions, follow these rules when using tools:
 - **Avoid `cat | grep` or `grep` in bash**: Always prioritize the `grep_search` tool over running `grep` in a bash command. Do not use `cat` for viewing files or `grep` for searching files via the `run_command` tool.
 - **File Finding**: Do not use `find . -name "..."` as an unbounded bash command (it runs as a long background task). Instead, use `grep_search` with the `Includes` filter or `list_dir` to find files efficiently.
 - **Task Logs**: Never use `cat` to read a background task's log file (e.g., `.system_generated/tasks/task-xxx.log`) manually, as it may not exist yet or might be truncated.
 - **Background Tasks**: Do not poll a running background task repeatedly using `manage_task status`. Launch the task and yield your turn by making no more tool calls; the system will automatically notify you and wake you up when the task completes.
+
+
+## First time setup:
+
+### macOS — Removable Volume Access
+
+When flashing UF2 firmware to devices (e.g. XIAO nRF52840 in bootloader mode), macOS requires explicit UI authorization before the AI assistant can access newly-mounted removable volumes. The volume may appear in `/Volumes/` but `cp` or other write operations will silently fail or appear to hang until the user approves the access prompt. Permission after given will be persistent.
+
+**What this looks like in practice:** The UF2 bootloader volume (e.g. `/Volumes/XIAO-BOOT`) mounts correctly, but the `cp` command blocks or fails until macOS shows the user a permission dialog. The user must approve it for the copy to proceed.
