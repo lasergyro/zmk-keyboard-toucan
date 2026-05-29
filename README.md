@@ -169,8 +169,26 @@ Logs saved to `debug-logs/<timestamp>-<side>-<port>.log`.
 ---
 
 ## Architecture
+
 Touchpad specific notes in [[touchpad.md]].
 Generic Desktop HID usage page reference (e.g. System Do Not Disturb) is in [[references/generic_desktop.md]].
+
+### Build Composition
+
+The firmware build process stitches together multiple code sources into a single executable:
+- **West Manifest**: `build.sh` initializes a Zephyr workspace (`.zmk-workspace`) and pulls dependencies based on `config/west.yml`. This brings in ZMK core (`external/zmk`) and remote modules (e.g., `zmk-helpers`, `zmk-leader-key`).
+- **Zephyr Module**: The root of this repository is itself a Zephyr module (via `zephyr/module.yml`), meaning its `src/` (custom C code), `boards/` (shield configs), and `dts/` (bindings) are automatically included.
+- **Extra Modules**: Additional input drivers (e.g., `external/cirque-input-module`, `external/zmk-input-gestures`) are injected into the build explicitly via `-DZMK_EXTRA_MODULES` flags in `build.sh`.
+- **CMake & Kconfig**: The Zephyr build system merges all Kconfig options and devicetree (`.dts`/`.dtsi`) overlays from the boards, shields, and modules into a final configuration before compiling the C sources.
+
+### Code Execution Structure
+
+The lifecycle and execution flow of the firmware at runtime is structured as follows:
+- **Boot / Initialization**: Custom application-level modules in `src/` (such as `debug_rpc.c`, `debug_quarantine.c`, `toucan_text_state.c`) use Zephyr's `SYS_INIT` macros. These are automatically invoked by the OS during kernel boot to register listeners, initialize NVS (Non-Volatile Storage), and start threads.
+- **Hardware & Drivers**: Hardware interrupts (e.g., touch events from the Pinnacle trackpad) trigger driver callbacks. The driver (e.g., `input_pinnacle.c`) processes raw hardware signals through a state machine and emits standardized Zephyr Input subsystem events.
+- **Input Processor Pipeline**: Devicetree definitions (in `toucan.dtsi`) create a chain of input processors. These intercept the raw input events (like `REL_X`, `REL_Y`, `BTN_TOUCH`), apply transformations (like axis inversion), and map specific signals to layer changes or behaviors (via `zip_behaviors`).
+- **ZMK Event System**: ZMK's core evaluates key presses and input events against the active `toucan.keymap`. It uses an event-driven architecture to trigger behaviors, combos, leader sequences, and text macros across the split halves.
+- **RPC Communication**: The custom RPC module listens asynchronously on the USB CDC ACM (serial) port. When commands are received on the central half, they are parsed and can trigger synthetic key events or forward parameter updates to the peripheral half over BLE.
 
 ### Layers
 | Index | Name | Activation | Physical Key (42-key) |
