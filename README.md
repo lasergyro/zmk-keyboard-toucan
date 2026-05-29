@@ -52,7 +52,6 @@ Keymap visualization config (annotation positions, colors, binding labels) in [[
 - `dts/`: Custom Devicetree bindings.
 - `external/`: Git submodules for ZMK, Cirque input drivers, and other helper modules.
 - `include/`: C header files for custom RPC interfaces and ZMK behaviors.
-- `patches/`: Source patches applied over upstream submodules.
 - `plans/`: Archived development plans, roadmaps, and AI agent artifacts.
 - `references/`: Reference material, datasheets, and HID usage tables.
 - `scripts/`: Utility shell scripts and Python tools for live tuning and RPC communication.
