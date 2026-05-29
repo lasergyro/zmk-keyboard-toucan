@@ -190,6 +190,14 @@ The lifecycle and execution flow of the firmware at runtime is structured as fol
 - **ZMK Event System**: ZMK's core evaluates key presses and input events against the active `toucan.keymap`. It uses an event-driven architecture to trigger behaviors, combos, leader sequences, and text macros across the split halves.
 - **RPC Communication**: The custom RPC module listens asynchronously on the USB CDC ACM (serial) port. When commands are received on the central half, they are parsed and can trigger synthetic key events or forward parameter updates to the peripheral half over BLE.
 
+### Dependencies
+The `config/west.yml` declares multiple upstream dependencies which currently track the latest available release tags (baseline `v0.3` / `v0.3.0`):
+- **ZMK Firmware** (`zmkfirmware/zmk.git`): Tracked via our `toucan-fork` (incorporating `0.3` patches + custom Generic Desktop HID support).
+- **ZMK Helpers** (`urob/zmk-helpers.git`): Pinned to `v0.3` (Latest: `v0.3.0`).
+- **ZMK Leader Key** (`urob/zmk-leader-key.git`): Pinned to `v0.3` (Latest: `v0.3.0`).
+- **ZMK Unicode** (`urob/zmk-unicode.git`): Pinned to `v0.3` (Latest: `v0.3.0`).
+- **ZMK RGBLED Widget** (`caksoylar/zmk-rgbled-widget.git`): Pinned to `v0.3` (Latest: `v0.3.0`).
+
 ### Layers
 | Index | Name | Activation | Physical Key (42-key) |
 |-------|------|------------|-----------------------|
@@ -206,6 +214,7 @@ The lifecycle and execution flow of the firmware at runtime is structured as fol
 | [[config/toucan.keymap]] | Layer definitions and key bindings |
 | [[config/combos.dtsi]] | Two-key combo definitions |
 | [[config/leader.dtsi]] / [[config/leader_greek.dtsi]] | Leader sequences (SYS, German, Greek namespaces) |
+
 
 
 ## Agent Command Guidelines
