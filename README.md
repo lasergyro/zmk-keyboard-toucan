@@ -30,6 +30,33 @@ It contains:
 - Local debugging notes and gotchas
 - The structured port plan roadmap for future features
 
+### Git Operations with Submodules
+
+This repository depends on Git submodules (e.g., `cirque-input-module`, `zmk`). When making changes, standard Git commands require a slightly modified workflow to ensure submodule states are tracked correctly:
+
+1. **Check Status**: 
+   ```bash
+   git status
+   ```
+   *Note: This shows if a submodule has new commits or modified content. For a detailed status across all submodules, you can use `git submodule foreach 'git status'`.*
+
+2. **Stage and Commit**:
+   If you have modified files **inside** a submodule, you must commit them there first before committing to the main repo:
+   ```bash
+   cd external/cirque-input-module
+   git add .
+   git commit -m "Update submodule code"
+   cd ../..
+   ```
+   After committing inside the submodule, stage the updated submodule pointer along with any other root repository changes:
+   ```bash
+   git add .
+   ```
+   Finally, commit the changes to the root repository:
+   ```bash
+   git commit -m "Your main repository commit message"
+   ```
+
 ## License
 
 The code in this repo is available under the MIT license.
