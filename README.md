@@ -29,7 +29,7 @@ The keyboard enters Deep Sleep automatically after 60 minutes of inactivity to c
 
 ### Keymap Structure
 
-For exact key assignments, see the source files above. High-level structure:
+For exact key assignments, see  "Config Files".
 
 - **Layers** — defined in [[config/toucan.keymap]]. See Architecture for indices.
 - **Homerow mods** — timeless HRMs on the home row (GUI–ALT–SHIFT–CTRL, pinky to index, symmetric). Uses `MAKE_HRM` / `ZMK_HOLD_TAP` from zmk-helpers.
@@ -37,6 +37,27 @@ For exact key assignments, see the source files above. High-level structure:
 - **Leader sequences** — three namespaces triggered by combo macros (`greek_ns`, `german_ns`, `sys_ns`). `&leader` is never invoked bare. See [[config/leader.dtsi]] and [[config/leader_greek.dtsi]] for sequences.
 - **Visualization** — [[draw/config.yaml]] is the single source of truth for annotation slot positions and colors; `draw/generate-keymaps.rb` derives all layer/leader CSS from it. Run `./draw-keymap.sh` to regenerate [[draw/keymap.svg]].
 
+
+### Keymap Visualization
+
+Keymap visualization config (annotation positions, colors, binding labels) in [[draw/config.yaml]].
+
+### Repository Structure
+
+- `artifacts/`: Build outputs (`.uf2` firmware binaries) for release and debug targets.
+- `boards/`: Shield definitions, devicetree overlays, and Kconfig options for the Toucan and displays.
+- `config/`: The core ZMK keymap, combos, macros, and leader sequence definitions.
+- `debug-logs/`: Destination for serial and RPC logs captured via `./debug.sh logs`.
+- `draw/`: Configuration and scripts to generate the SVG keymap using `keymap-drawer`.
+- `dts/`: Custom Devicetree bindings.
+- `external/`: Git submodules for ZMK, Cirque input drivers, and other helper modules.
+- `include/`: C header files for custom RPC interfaces and ZMK behaviors.
+- `patches/`: Source patches applied over upstream submodules.
+- `plans/`: Archived development plans, roadmaps, and AI agent artifacts.
+- `references/`: Reference material, datasheets, and HID usage tables.
+- `scripts/`: Utility shell scripts and Python tools for live tuning and RPC communication.
+- `src/`: Custom C source code implementing RPC endpoints, behaviors, and ZMK Studio integration.
+- `tests/`: Python-based automated gesture pipeline and RPC tests.
 
 ## Development Workflow
 
@@ -149,7 +170,8 @@ Logs saved to `debug-logs/<timestamp>-<side>-<port>.log`.
 ---
 
 ## Architecture
-Touchpad specific notes in [[touchpad.md]]
+Touchpad specific notes in [[touchpad.md]].
+Generic Desktop HID usage page reference (e.g. System Do Not Disturb) is in [[references/generic_desktop.md]].
 
 ### Layers
 | Index | Name | Activation | Physical Key (42-key) |
@@ -160,17 +182,14 @@ Touchpad specific notes in [[touchpad.md]]
 | 3 | PAD | `BTN_TOUCH` | Touchpad (automatic) |
 | 4 | PAN | `&mo 4` | Held from Pad layer |
 
-### Key Files
+### Config Files
 | File | Role |
 |------|------|
-| [[src/debug_rpc.c]] | Debug RPC commands (get/set gesture params, persist to NVS) |
 | [[boards/shields/toucan/toucan.dtsi]] | Input listener + processor chain |
 | [[config/toucan.keymap]] | Layer definitions and key bindings |
 | [[config/combos.dtsi]] | Two-key combo definitions |
 | [[config/leader.dtsi]] / [[config/leader_greek.dtsi]] | Leader sequences (SYS, German, Greek namespaces) |
-| [[draw/config.yaml]] | Keymap visualization config (annotation positions, colors, binding labels) |
-| [[references/generic_desktop.md]] | Generic Desktop HID usage page reference (e.g. System Do Not Disturb) |
----
+
 
 ## Agent Command Guidelines
 
