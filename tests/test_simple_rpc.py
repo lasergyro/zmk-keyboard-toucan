@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 # Add scripts to path
-sys.path.append(str(Path(__file__).resolve().parent))
+sys.path.append(str(Path(__file__).resolve().parent.parent / "scripts"))
 from debug_tool import RPCSession
 
 def test_simple_rpc_standardized():

@@ -58,14 +58,18 @@ When flashing UF2 firmware to devices (e.g. XIAO nRF52840 in bootloader mode), m
 
 ---
 
-### Testing Standards
+### Tests
 
-All automated tests must adhere to the following architecture:
-- **Peripheral Injection for Touch**: The split transport batches the BLE/RPC messages, causing them to arrive at the peripheral almost simultaneously. This means that timing/waits should be done on the left half, with some flushing of messages.
-- **Queued Execution**: No `time.sleep()` in test scripts. All timing and event sequences must be queued via `qi` and executed via `qo`.
-- **Global Position Injection**: Peripheral key events must be injected at the Central half using their global position indices.
-- **Clean Abstraction**: Tests must not import `serial_rpc.py` directly. All communication must use the `debug_tool.RPCSession` abstraction.
-- **Isolate Environment**: Use `quarantine on` during tests to block physical interference.
+All tests (e.g., `tests/test_pad.py`, `tests/test_simple_rpc.py`) should follow this standard recipe:
+
+#### Test Recipe
+1. **Clean Abstraction**: Import and use `debug_tool.RPCSession` from `scripts/debug_tool.py` for all communication. Never import `serial_rpc.py` directly.
+2. **Isolate Environment**: Always request `quarantine on` at the beginning of the test to block physical interference, and `quarantine off` when done.
+3. **Queued Execution**: Do not use `time.sleep()` in test scripts. All timing and event sequences must be queued via `qi` (or `run_scenario()`) and executed via `qo`.
+4. **Global Position Injection**: Peripheral key events must be injected at the Central (left) half using their global position indices.
+
+#### Testing Tips & Gotchas
+- **Peripheral Injection for Touch**: The split transport batches the BLE/RPC messages, causing them to arrive at the peripheral almost simultaneously. This means that timing/waits should be managed on the left half, with some flushing of messages.
 - **Timestamp Drift**: Be aware that the `left_log` and `right_log` Zephyr uptime timestamps can drift or start with several seconds of offset.
 
 See [[rpc.md]] for debug RPC commands.
@@ -127,7 +131,7 @@ Expected: 4 lines — left rpc, left log, right rpc, right log.
  4. Run Automated Tests
 ```bash
 pkill -9 -f "python.*debug|debug.sh|pyserial" || true
-python3 scripts/test_pad.py
+python3 tests/test_pad.py
 ```
 
  5. Live Logs
