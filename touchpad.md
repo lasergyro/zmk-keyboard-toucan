@@ -13,12 +13,12 @@ Pinnacle (abs mode) → input_pinnacle.c (state machine)
 ## Key Files
 | File | Role |
 |------|------|
-| `external/cirque-input-module/drivers/input/input_pinnacle.c` | Pinnacle driver — state machine (git submodule, `toucan` branch) |
+| [[external/cirque-input-module/drivers/input/input_pinnacle.c]] | Pinnacle driver — state machine (git submodule, `toucan` branch) |
 | `external/cirque-input-module/dts/bindings/input/cirque,pinnacle-common.yaml` | DTS binding for gesture params |
-| `boards/shields/toucan/toucan_right.overlay` | Pinnacle config + gesture param defaults |
-| `boards/shields/toucan/toucan_right.conf` | `CONFIG_ZMK_POINTING`, stack sizes |
-| `scripts/touchpad_params_live.py` | Live-tune: watches overlay, sends `set` RPC on save |
-| `touchpad_state_machine.md` | Full state machine spec |
+| [[boards/shields/toucan/toucan_right.overlay]] | Pinnacle config + gesture param defaults |
+| [[boards/shields/toucan/toucan_right.conf]] | `CONFIG_ZMK_POINTING`, stack sizes |
+| [[scripts/touchpad_params_live.py]] | Live-tune: watches overlay, sends `set` RPC on save |
+| [[touchpad_state_machine.md]] | Full state machine spec |
 ---
 
 ## Hardware Notes
@@ -40,7 +40,7 @@ All params live in `pinnacle_data.gesture_params` (RAM). DTS defaults are copied
   - `layers` — query active layer bitmask (left/central only)
 
 
-**Live tuning**: run `scripts/touchpad_params_live.py` — watches `toucan_right.overlay`, sends `set` RPC on save.
+**Live tuning**: run [[scripts/touchpad_params_live.py]] — watches `toucan_right.overlay`, sends `set` RPC on save.
 
 See [[touchpad_state_machine.md]] for the full param table and state machine spec.
 

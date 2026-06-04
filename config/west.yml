@@ -12,6 +12,8 @@ manifest:
       url-base: https://github.com/caksoylar
     - name: geeksville
       url-base: https://github.com/geeksville
+    - name: oleksandrmaslov
+      url-base: https://github.com/oleksandrmaslov
   projects:
     - name: zmk
       url: ../../external/zmk
@@ -32,5 +34,8 @@ manifest:
     - name: zmk-rgbled-widget
       remote: caksoylar
       revision: v0.3
+    - name: zmk-pointing-acceleration
+      remote: oleksandrmaslov
+      revision: main
   self:
     path: config

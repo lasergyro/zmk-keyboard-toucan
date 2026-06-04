@@ -1,3 +1,7 @@
 # TODOs
-- [ ] move and update the skills about this repo if possible so they are only active in this repo.
-- [ ] check a clean checkout (use an empty folder on this machine, don't destroy the original) can compile the same exact artifacts (release and debug).
+- Make file references in .md files clickable (use repo root relative paths wrapped in double square brackets).
+- Add config options to toggle each pad gesture; set to off by default. Adjust tests accordingly so they enable the right gesturest during testing.
+- Move Pan in the PAD layer to the rightmost thumb cluster key in the right half.
+- Produce a human_interface.md doc where you detail the constraints and goals of using the toucan keyboard, ie design guidelines for the keymap of each layer to be able to efficiently and reliably output the necessary key and mouse events, combos and sequences. Eg, which keys need to be transparent in the pad layer to be able to emit mouse clicks plus modifiers, where should click buttons be placed if the gestures are disable (due to being hard to trigger correctly, a possibility i am considering).
+- Add mouse acceleration or whichever is the right equivalent for a touchpad, expose parameters through the live config mechanism; it should be possible to make the mouse cross the entire screen when moving the finger at human speed fast from one side to the other of the touchpad. Search online and ground your decisions by writting first a research doc named touchpad_acceleration.md.
+- Design a custom software companion app for macOS in a `./companion` submodule that replicates the functionality of LinearMouse and MOS/Mac Mouse Fix, specifically tailored for the Toucan keyboard without affecting the native MacBook trackpad behavior.

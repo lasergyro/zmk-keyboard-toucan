@@ -191,6 +191,12 @@ def main() -> int:
         print("  Quarantining keyboard matrix...")
         rpc.request("quarantine on")
 
+        print("  Enabling gestures via RPC...")
+        rpc.request("pad param set tap_enable 1")
+        rpc.request("pad param set rclick_enable 1")
+        rpc.request("pad param set drag_enable 1")
+        rpc.request("pad param set scroll_enable 1")
+
         try:
             reset_touch_state(rpc)
             

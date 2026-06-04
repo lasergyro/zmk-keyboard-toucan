@@ -3,6 +3,7 @@
 #include <dt-bindings/zmk/input_transform.h>
 #include <dt-bindings/zmk/matrix_transform.h>
 #include <physical_layouts.dtsi>
+#include <behaviors/input_gestures_accel.dtsi>
 
 
 / {
@@ -116,7 +117,7 @@
         compatible = "zmk,input-listener";
         status = "disabled";
         device = <&glidepoint_split>;
-        input-processors = <&zip_touch_behaviors>, <&zip_xy_transform INPUT_TRANSFORM_X_INVERT>;
+        input-processors = <&pointer_accel>, <&zip_touch_behaviors>, <&zip_xy_transform INPUT_TRANSFORM_X_INVERT>;
 
         /* PAN layer (index 4): convert XY movement to scroll events */
         pan_override: pan_override {
@@ -125,4 +126,14 @@
         };
     };
 
+};
+
+&pointer_accel {
+    input-type = <INPUT_EV_REL>;
+    min-factor = <800>;
+    max-factor = <3000>;
+    speed-threshold = <1200>;
+    speed-max = <6000>;
+    acceleration-exponent = <2>;
+    track-remainders;
 };
