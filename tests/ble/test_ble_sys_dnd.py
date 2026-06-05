@@ -17,49 +17,38 @@ def verify_ble_dnd():
     time.sleep(1)
 
     print("Connecting to keyboard...")
-    rpc = RPCSession(selector="left")
-    
-    print("\n[USB Test]")
-    print("Forcing output to USB...")
-    rpc.request("out usb")
-    time.sleep(0.5)
-    
-    print("Activating NAV layer (holding key 19)...")
-    rpc.request("key 19 1")
-    time.sleep(0.5)
-    
-    print("Tapping SYS_DND (key 10)...")
-    rpc.request("key 10 1")
-    time.sleep(0.5)
-    rpc.request("key 10 0")
-    time.sleep(0.5)
-    
-    print("Releasing NAV layer (key 19)...")
-    rpc.request("key 19 0")
-    time.sleep(0.5)
-    
-    print("\n[BLE Test]")
-    print("Forcing output to BLE...")
-    rpc.request("out ble")
-    time.sleep(0.5)
-    
-    print("Activating NAV layer (holding key 19)...")
-    rpc.request("key 19 1")
-    time.sleep(0.5)
-    
-    print("Tapping SYS_DND (key 10)...")
-    rpc.request("key 10 1")
-    time.sleep(0.5)
-    rpc.request("key 10 0")
-    time.sleep(0.5)
-    
-    print("Releasing NAV layer (key 19)...")
-    rpc.request("key 19 0")
-    time.sleep(0.5)
-    
-    print("\nRestoring output to USB...")
-    rpc.request("out usb")
-    time.sleep(0.5)
+    with RPCSession(selector="left") as rpc:
+        print("\n[USB Test]")
+        print("Forcing output to USB...")
+        rpc.request("out usb")
+        time.sleep(0.5)
+        
+        print("Sending SYS_DND sequence via qi/qo...")
+        rpc.run_scenario([
+            "P,10,19,1",
+            "P,50,10,1",
+            "P,50,10,0",
+            "P,50,19,0"
+        ])
+        time.sleep(1.0)
+        
+        print("\n[BLE Test]")
+        print("Forcing output to BLE...")
+        rpc.request("out ble")
+        time.sleep(0.5)
+        
+        print("Sending SYS_DND sequence via qi/qo...")
+        rpc.run_scenario([
+            "P,10,19,1",
+            "P,50,10,1",
+            "P,50,10,0",
+            "P,50,19,0"
+        ])
+        time.sleep(1.0)
+        
+        print("\nRestoring output to USB...")
+        rpc.request("out usb")
+        time.sleep(0.5)
     
     listen_proc.terminate()
     try:
@@ -75,11 +64,15 @@ def verify_ble_dnd():
         print("Errors:")
         print(stderr)
 
-    usb_success = stdout.count("RECEIVED MUTE") >= 2
-    ble_success = stdout.count("RECEIVED MUTE") >= 4
+    usb_success = stdout.count("RECEIVED SYS_DND") >= 1
+    ble_success = stdout.count("RECEIVED SYS_DND") >= 2
     
     print(f"\nUSB Keystroke received: {usb_success}")
     print(f"BLE Keystroke received: {ble_success}")
     
+    assert usb_success, "USB failed to receive SYS_DND"
+    assert ble_success, "BLE failed to receive SYS_DND"
+    print("SUCCESS!")
+
 if __name__ == "__main__":
     verify_ble_dnd()
