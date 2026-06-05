@@ -31,16 +31,16 @@ The keyboard enters Deep Sleep automatically after 60 minutes of inactivity to c
 
 For exact key assignments, see  "Config Files".
 
-- **Layers** — defined in [[config/toucan.keymap]]. See Architecture for indices.
+- **Layers** — defined in [config/toucan.keymap](config/toucan.keymap). See Architecture for indices.
 - **Homerow mods** — timeless HRMs on the home row (GUI–ALT–SHIFT–CTRL, pinky to index, symmetric). Uses `MAKE_HRM` / `ZMK_HOLD_TAP` from zmk-helpers.
 - **Combos** — two-key horizontal and vertical combos in `config/combos.dtsi`. Produce symbols, navigation shortcuts, and namespace-combo triggers.
-- **Leader sequences** — three namespaces triggered by combo macros (`greek_ns`, `german_ns`, `sys_ns`). `&leader` is never invoked bare. See [[config/leader.dtsi]] and [[config/leader_greek.dtsi]] for sequences.
-- **Visualization** — [[draw/config.yaml]] is the single source of truth for annotation slot positions and colors; `draw/generate-keymaps.rb` derives all layer/leader CSS from it. Run `./draw-keymap.sh` to regenerate [[draw/keymap.svg]].
+- **Leader sequences** — three namespaces triggered by combo macros (`greek_ns`, `german_ns`, `sys_ns`). `&leader` is never invoked bare. See [config/leader.dtsi](config/leader.dtsi) and [config/leader_greek.dtsi](config/leader_greek.dtsi) for sequences.
+- **Visualization** — [draw/config.yaml](draw/config.yaml) is the single source of truth for annotation slot positions and colors; `draw/generate-keymaps.rb` derives all layer/leader CSS from it. Run `./draw-keymap.sh` to regenerate [draw/keymap.svg](draw/keymap.svg).
 
 
 ### Keymap Visualization
 
-Keymap visualization config (annotation positions, colors, binding labels) in [[draw/config.yaml]].
+Keymap visualization config (annotation positions, colors, binding labels) in [draw/config.yaml](draw/config.yaml).
 
 ### Repository Structure
 
@@ -62,6 +62,12 @@ Keymap visualization config (annotation positions, colors, binding labels) in [[
 
 ### First time setup:
 
+#### OS Setup Instructions (macOS)
+To get the best experience out of the Toucan trackpad on macOS, you should perform the following configuration:
+1. **Disable Mouse Acceleration**: macOS's native mouse acceleration curve can make the small Toucan trackpad feel floaty. You should disable it completely in macOS System Settings > Mouse > Advanced, or by using a tool like LinearMouse.
+2. **Smooth Scrolling**: The Toucan trackpad emits standard mouse scroll wheel events, which macOS natively renders as "stepped" scrolling. For a native Mac-like smooth scrolling experience, install [MOS](https://mos.caldis.me/) and leave it running in the background.
+
+
 #### macOS — Removable Volume Access
 
 When flashing UF2 firmware to devices (e.g. XIAO nRF52840 in bootloader mode), macOS requires explicit UI authorization before the AI assistant can access newly-mounted removable volumes. The volume may appear in `/Volumes/` but `cp` or other write operations will silently fail or appear to hang until the user approves the access prompt. Permission after given will be persistent.
@@ -70,7 +76,7 @@ When flashing UF2 firmware to devices (e.g. XIAO nRF52840 in bootloader mode), m
 
 ### Recovery Procedures
 
-1. **Full Reset**: `./upload.sh reset`
+1. **Full Reset**: `./release.sh upload reset`
 2. **Physical Reset**: Double-tap RST on each XIAO → bootloader → drop UF2 manually.
 3. **Touchpad First**: Right half owns Pinnacle hardware — flash it first if pad dies.
 
@@ -92,7 +98,7 @@ All tests (e.g., `tests/test_pad.py`, `tests/test_simple_rpc.py`) should follow 
 - **Peripheral Injection for Touch**: The split transport batches the BLE/RPC messages, causing them to arrive at the peripheral almost simultaneously. This means that timing/waits should be managed on the left half, with some flushing of messages.
 - **Timestamp Drift**: Be aware that the `left_log` and `right_log` Zephyr uptime timestamps can drift or start with several seconds of offset.
 
-See [[rpc.md]] for debug RPC commands.
+See [rpc.md](rpc.md) for debug RPC commands.
 
 ---
 
@@ -135,11 +141,11 @@ Outputs to `artifacts/debug/`. Always use this for touchpad / overlay changes.
  2. Flash Both Halves
 ```bash
 # Flash both halves over USB RPC (both halves must be connected via USB)
-ARTIFACTS_DIR=artifacts/debug ./upload.sh --debug both
+./debug.sh upload --debug both
 
-# If one half is not detected, flash individually:
-ARTIFACTS_DIR=artifacts/debug ./upload.sh --debug left
-ARTIFACTS_DIR=artifacts/debug ./upload.sh --debug right
+# For iterative testing on one half:
+./debug.sh upload --debug left
+./debug.sh upload --debug right
 ```
 
  3. Verify Devices
@@ -163,22 +169,22 @@ Logs saved to `debug-logs/<timestamp>-<side>-<port>.log`.
 
 #### Build Release Firmware
 ```bash
-./build.sh && ARTIFACTS_DIR=artifacts/release ./upload.sh both
+./release.sh build && ./release.sh upload both
 ```
 
 ---
 
 ## Architecture
 
-Touchpad specific notes in [[touchpad.md]].
-Generic Desktop HID usage page reference (e.g. System Do Not Disturb) is in [[plans/generic_desktop.md]].
+Touchpad specific notes in [touchpad.md](touchpad.md).
+Generic Desktop HID usage page reference (e.g. System Do Not Disturb) is in [plans/generic_desktop.md](plans/generic_desktop.md).
 
 ### Build Composition
 
 The firmware build process stitches together multiple code sources into a single executable:
-- **West Manifest**: `build.sh` initializes a Zephyr workspace (`.zmk-workspace`) and pulls dependencies based on `config/west.yml`. This brings in ZMK core (`external/zmk`) and remote modules (e.g., `zmk-helpers`, `zmk-leader-key`).
-- **Zephyr Module**: The root of this repository is itself a Zephyr module (via `zephyr/module.yml`), meaning its `src/` (custom C code), `boards/` (shield configs), and `dts/` (bindings) are automatically included.
-- **Extra Modules**: Additional input drivers (e.g., `external/cirque-input-module`, `external/zmk-input-gestures`) are injected into the build explicitly via `-DZMK_EXTRA_MODULES` flags in `build.sh`.
+- **West Manifest**: `scripts/build.sh` initializes a Zephyr workspace (`.zmk-workspace`) and pulls dependencies based on `config/west.yml`. This brings in ZMK core (`external/zmk`) and remote modules (e.g., `zmk-helpers`, `zmk-leader-key`).
+- **Build Configurations**: `build.yaml` declares the board and shield configurations for both halves.
+- **Extra Modules**: Additional input drivers (e.g., `external/cirque-input-module`, `external/zmk-input-gestures`) are injected into the build explicitly via `-DZMK_EXTRA_MODULES` flags in `scripts/build.sh`.
 - **CMake & Kconfig**: The Zephyr build system merges all Kconfig options and devicetree (`.dts`/`.dtsi`) overlays from the boards, shields, and modules into a final configuration before compiling the C sources.
 
 ### Code Execution Structure
@@ -210,22 +216,41 @@ The `config/west.yml` declares multiple upstream dependencies which currently tr
 ### Config Files
 | File | Role |
 |------|------|
-| [[boards/shields/toucan/toucan.dtsi]] | Input listener + processor chain |
-| [[config/toucan.keymap]] | Layer definitions and key bindings |
-| [[config/combos.dtsi]] | Two-key combo definitions |
-| [[config/leader.dtsi]] / [[config/leader_greek.dtsi]] | Leader sequences (SYS, German, Greek namespaces) |
-
-
+| [boards/shields/toucan/toucan.dtsi](boards/shields/toucan/toucan.dtsi) | Input listener + processor chain |
+| [config/toucan.keymap](config/toucan.keymap) | Layer definitions and key bindings |
+| [config/combos.dtsi](config/combos.dtsi) | Two-key combo definitions |
+| [config/leader.dtsi](config/leader.dtsi) / [config/leader_greek.dtsi](config/leader_greek.dtsi) | Leader sequences (SYS, German, Greek namespaces) |
 
 ## Agent Command Guidelines
 
-**Knowledge Item Reference**: The core commands and workflow constraints for this project have been extracted to a Knowledge Item at [commands.md](file:///Users/ma/.gemini/antigravity-ide/knowledge/toucan_basic_commands/artifacts/commands.md). Ensure you review it if context is lost.
+**Knowledge Item Reference**: The core commands and workflow constraints for this project have been extracted to a [Knowledge Item](.gemini/knowledge/toucan_basic_commands/artifacts/commands.md), and are repeated below.
+
+**Dev logs**: for each specific issue keep a log/notes in a document in `plans/[date]-[topic].md`; keep it up to date as you resolve the issue.
+
+**Generic Patcher**: if normal edit tools are not the first choice, use the generic patching tool `scripts/patcher.py` to make targeted changes to files without needing to write custom Python scripts each time. You can invoke it like `python3 scripts/patcher.py <file> --search "<search_text>" --replace "<replace_text>"`.
 
 To prevent repetitive mistakes during future sessions, follow these rules when using tools:
 - **Avoid `cat | grep` or `grep` in bash**: Always prioritize the `grep_search` tool over running `grep` in a bash command. Do not use `cat` for viewing files or `grep` for searching files via the `run_command` tool.
 - **File Finding**: Do not use `find . -name "..."` as an unbounded bash command (it runs as a long background task). Instead, use `grep_search` with the `Includes` filter or `list_dir` to find files efficiently.
 - **Task Logs**: Never use `cat` to read a background task's log file (e.g., `.system_generated/tasks/task-xxx.log`) manually, as it may not exist yet or might be truncated.
 - **Background Tasks**: Do not poll a running background task repeatedly using `manage_task status`. Launch the task and yield your turn by making no more tool calls; the system will automatically notify you and wake you up when the task completes.
+
+### Basic Project Commands
+- **Build Firmware:**
+  `./debug.sh build`
+- **Flash Firmware:**
+  `./debug.sh upload` 
+- **Execute Python:**
+  All python scripts must be run via `uv run`.
+- **Execute Python Tests:**
+  e.g. `uv run tests/test_pad.py`
+- **Stream Live Device Logs:**
+  `./debug.sh logs both`
+
+### Hardware & Architecture Facts
+- The touchpad parser (`cirque_pinnacle_inject_abs`) runs exclusively on the **Right Half**.
+- Python automation scripts communicate exclusively with the **Left Half** over USB.
+- Events injected via `qi` are sent from Left to Right over BLE.
 
 ## License
 

@@ -17,6 +17,7 @@ Usage: ./debug.sh [command]
 
 Commands:
   build     Build debug firmware into artifacts/debug. Default.
+  upload    Flash debug UF2 artifacts to the XIAO bootloader volume.
   devices   List Toucan USB CDC ACM devices on macOS and annotate rpc/log roles.
   logs      Open one or both log streams and capture timestamped files.
   rpc       Send a debug RPC command over the USB CDC ACM RPC port.
@@ -213,6 +214,11 @@ BUILD_PRISTINE="${BUILD_PRISTINE:-always}"
 COMPILER_CACHE_BIN=""
 COMPILER_CACHE_NAME=""
 declare -a COMPILER_LAUNCHER_CMAKE_ARGS=()
+
+if [[ "$COMMAND" == "upload" ]]; then
+  export ARTIFACTS_DIR="$ARTIFACT_DIR"
+  exec "$REPO_ROOT/scripts/upload.sh" "${COMMAND_ARGS[@]}"
+fi
 
 if [[ "$COMMAND" != "build" ]]; then
   require_command python3

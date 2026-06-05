@@ -1,6 +1,6 @@
 {
   "title": "Toucan Keyboard - Basic Commands and Workflow Constraints",
-  "summary": "Essential reference for building, flashing, and testing the Toucan keyboard firmware, as well as critical agent workflow constraints. Covers usage of debug.sh, upload.sh, and uv test execution.",
+  "summary": "Essential reference for building, flashing, and testing the Toucan keyboard firmware, as well as critical agent workflow constraints. Covers usage of debug.sh, and uv test execution.",
   "timestamps": {
     "created": "2026-05-27T00:23:00Z",
     "updated": "2026-05-27T00:23:00Z"

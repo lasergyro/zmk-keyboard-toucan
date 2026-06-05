@@ -83,7 +83,7 @@ Enter MOVING immediately. Snap behaviour is controlled by the `tap-snap` DTS pro
 `is_left` no longer relevant after this transition.
 
 **TAP_PENDING → DRAG_WINDOW** (`tap_timeout` fires, lift):  
-Emit button-down (`is_left ? BTN_0 : BTN_1` = 1), schedule `drag_window_timeout(300ms)`.
+Emit button-down AND instantly button-up (`is_left ? BTN_0 : BTN_1` = 1 then 0, creating a 0ms click). Schedule `drag_window_timeout(150ms)`.
 
 ---
 
@@ -100,14 +100,20 @@ Hard press while cursor-moving — `is_left` forced true (always left), emit `BT
 
 ---
 
-**DRAG_WINDOW → DRAGGING** (contact AND `z >= double_click_drag_z_threshold`):  
-Tap-then-retouch: snap `prev_scaled_x/y` to new touch position. Cancel `drag_window_timeout`.
+**DRAG_WINDOW → DRAGGING_PENDING** (contact AND `z >= double_click_drag_z_threshold`):  
+Tap-then-retouch (Double-click and drag): Emit button-down (`is_left ? BTN_0 : BTN_1` = 1, sync), snap `prev_scaled_x/y` to new touch position. Cancel `drag_window_timeout`. Schedule `drag_pending_timeout(120ms)`. Movement is suppressed.
+
+**DRAGGING_PENDING → INACTIVE** (lift before `drag_pending_timeout` fires):
+Finger lifted quickly (Double-click). Emit button-up (`is_left ? BTN_0 : BTN_1` = 0, sync). Cancel `drag_pending_timeout`. Emit `BTN_TOUCH=0`.
+
+**DRAGGING_PENDING → DRAGGING** (`drag_pending_timeout` fires AND contact):
+Finger held down. Enter DRAGGING state and emit accumulated delta.
 
 **DRAG_WINDOW → TAP_PENDING** (contact AND `z < double_click_drag_z_threshold`):  
-Light touch — cancel drag: emit button-up (`is_left ? BTN_0 : BTN_1` = 0, sync), cancel `drag_window_timeout`, recompute `is_left` from new touch position, save `touch_start_x/y`, set `prev_scaled_x/y`, schedule `tap_timeout(120ms)`. PAD stays ON (no BTN_TOUCH change).
+Light touch — cancel drag: Button is already released. Cancel `drag_window_timeout`, recompute `is_left` from new touch position, save `touch_start_x/y`, set `prev_scaled_x/y`, schedule `tap_timeout(120ms)`. PAD stays ON (no BTN_TOUCH change).
 
 **DRAG_WINDOW → INACTIVE** (`drag_window_timeout` fires):  
-Emit button-up (`is_left ? BTN_0 : BTN_1` = 0, sync), emit `BTN_TOUCH=0`.
+Button is already released. Emit `BTN_TOUCH=0`.
 
 ---
 
@@ -159,7 +165,8 @@ All timers are configurable via DTS properties on the `cirque,pinnacle` node.
 | Timer | DTS property | Default | Notes |
 |-------|-------------|---------|-------|
 | `tap_timeout` | `tap-timeout-ms` | 120 ms | debounce: finger-down must last this long before registering |
-| `drag_window_timeout` | `drag-window-timeout-ms` | 300 ms | tap-to-drag: window between lift and re-touch |
+| `drag_window_timeout` | `drag-window-timeout-ms` | 150 ms | tap-to-drag: window between lift and re-touch |
+| `drag_pending_timeout`| `drag-pending-timeout-ms`| 120 ms | suppress movement on 2nd tap to prevent double-click jitter |
 | `drag_jump_timeout` | `drag-jump-timeout-ms` | 500 ms | smart drag: window for crossing pad and re-touching |
 | `pad_off` | `pad-off-timeout-ms` | 200 ms | delay before `BTN_TOUCH=0`; cancelled if new gesture starts |
 | `zip_behaviors` (`mo 4`) | — | immediate | `BTN_TOUCH=1` → layer ON; `BTN_TOUCH=0` → layer OFF (on `pad_off` fire) |

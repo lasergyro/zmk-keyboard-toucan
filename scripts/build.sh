@@ -473,7 +473,7 @@ main() {
   log "Artifacts are in $ARTIFACT_ROOT"
 }
 
-REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_MATRIX_FILE="${BUILD_MATRIX_FILE:-$REPO_ROOT/build.yaml}"
 CONFIG_SOURCE_DIR="${CONFIG_SOURCE_DIR:-$REPO_ROOT/config}"
 WORKSPACE_DIR="${WORKSPACE_DIR:-$REPO_ROOT/.zmk-workspace}"

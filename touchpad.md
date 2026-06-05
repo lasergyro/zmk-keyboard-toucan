@@ -13,12 +13,12 @@ Pinnacle (abs mode) → input_pinnacle.c (state machine)
 ## Key Files
 | File | Role |
 |------|------|
-| [[external/cirque-input-module/drivers/input/input_pinnacle.c]] | Pinnacle driver — state machine (git submodule, `toucan` branch) |
+| [external/cirque-input-module/drivers/input/input_pinnacle.c](external/cirque-input-module/drivers/input/input_pinnacle.c) | Pinnacle driver — state machine (git submodule, `toucan` branch) |
 | `external/cirque-input-module/dts/bindings/input/cirque,pinnacle-common.yaml` | DTS binding for gesture params |
-| [[boards/shields/toucan/toucan_right.overlay]] | Pinnacle config + gesture param defaults |
-| [[boards/shields/toucan/toucan_right.conf]] | `CONFIG_ZMK_POINTING`, stack sizes |
-| [[scripts/touchpad_params_live.py]] | Live-tune: watches overlay, sends `set` RPC on save |
-| [[touchpad_state_machine.md]] | Full state machine spec |
+| [boards/shields/toucan/toucan_right.overlay](boards/shields/toucan/toucan_right.overlay) | Pinnacle config + gesture param defaults |
+| [boards/shields/toucan/toucan_right.conf](boards/shields/toucan/toucan_right.conf) | `CONFIG_ZMK_POINTING`, stack sizes |
+| [scripts/touchpad_params_live.py](scripts/touchpad_params_live.py) | Live-tune: watches overlay, sends `set` RPC on save |
+| [touchpad_state_machine.md](touchpad_state_machine.md) | Full state machine spec |
 ---
 
 ## Hardware Notes
@@ -28,6 +28,7 @@ Pinnacle (abs mode) → input_pinnacle.c (state machine)
 - **Z range: 0–31 (5 bits).** Typical touch: 15–30. Z=0 = no touch / idle packet. Z=0 is the only lift signal.
 - **Z-idle packet mechanism.** After lift the chip sends `NUM_ZIDLE + NUM_ZIDLE_PAD = 5` packets with z=0, then goes quiet. `num_z_idle == NUM_ZIDLE (3)` is the debounced lift signal used by the state machine.
 - **Scaled coordinate space: 0–1024, center (512, 512).** Raw X: 128–1920, raw Y: 64–1472. All gesture math operates in scaled space.
+- **AXIS ORIENTATION (CRITICAL):** The X-axis increases from right to left! `x=0` is the physical right edge, and `x=1024` is the physical left edge. This means right-click zones are checked with `x < rclick_x_min`.
 - **No `-lm` linking.** macOS Homebrew `arm-none-eabi-binutils` cannot find `libm.a`. Never use `zephyr_library_link_libraries(m)`. Use inline integer implementations (`atan2_16` from QMK).
 
 ## Gesture Params
@@ -40,9 +41,9 @@ All params live in `pinnacle_data.gesture_params` (RAM). DTS defaults are copied
   - `layers` — query active layer bitmask (left/central only)
 
 
-**Live tuning**: run [[scripts/touchpad_params_live.py]] — watches `toucan_right.overlay`, sends `set` RPC on save.
+**Live tuning**: run [scripts/touchpad_params_live.py](scripts/touchpad_params_live.py) — watches `toucan_right.overlay`, sends `set` RPC on save.
 
-See [[touchpad_state_machine.md]] for the full param table and state machine spec.
+See [touchpad_state_machine.md](touchpad_state_machine.md) for the full param table and state machine spec.
 
 ## PAD Layer Activation
 

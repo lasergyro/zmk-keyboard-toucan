@@ -15,6 +15,3 @@
 [submodule "references/qmk_firmware"]
 	path = references/qmk_firmware
 	url = https://github.com/qmk/qmk_firmware.git
-[submodule "companion"]
-	path = companion
-	url = ./companion

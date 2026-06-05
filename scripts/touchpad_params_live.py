@@ -9,9 +9,9 @@ On every save it parses the gesture params in the glidepoint@0 node and sends
 automatically persisted to the keyboard's flash settings store.
 
 Usage:
-    ./debug.sh python scripts/touchpad_params_live.py          # auto-detect
-    ./debug.sh python scripts/touchpad_params_live.py /dev/tty.usbmodemXXX
-    python3 scripts/touchpad_params_live.py [/dev/tty.usbmodemXXX]
+    ./debug.sh python scripts/touchpad_params_live.py [--timeout SECS]
+    ./debug.sh python scripts/touchpad_params_live.py [/dev/tty.usbmodemXXX] [--timeout SECS]
+    python3 scripts/touchpad_params_live.py [/dev/tty.usbmodemXXX] [--timeout SECS]
 
 The script keeps the RPC session open and polls the overlay file every 0.5 s.
 Press Ctrl-C to exit.
@@ -19,6 +19,7 @@ Press Ctrl-C to exit.
 
 from __future__ import annotations
 
+import argparse
 import os
 import re
 import sys
@@ -51,6 +52,10 @@ INT_PARAMS: Dict[str, str] = {
 # Boolean params: present as bare property → 1, absent → 0.
 BOOL_PARAMS: Dict[str, str] = {
     "tap-snap": "tap_snap",
+    "tap-enable": "tap_enable",
+    "rclick-enable": "rclick_enable",
+    "drag-enable": "drag_enable",
+    "scroll-enable": "scroll_enable",
 }
 ALL_PARAM_KEYS = list(INT_PARAMS.values()) + list(BOOL_PARAMS.values())
 
@@ -118,10 +123,13 @@ def send_set(session: SerialRPCSession, key: str, value: int) -> bool:
     return ok
 
 
-def watch_file_mtime(path: Path):
+def watch_file_mtime(path: Path, timeout_s: int | None = None):
     """Yield each time the file's mtime changes."""
     prev: float | None = None
+    start_time = time.time()
     while True:
+        if timeout_s and (time.time() - start_time) > timeout_s:
+            break
         try:
             mtime = path.stat().st_mtime
         except FileNotFoundError:
@@ -134,8 +142,12 @@ def watch_file_mtime(path: Path):
 
 
 def main(argv: list[str]) -> int:
-    selector = argv[0] if argv else None
-    device = find_right_rpc_device(selector)
+    parser = argparse.ArgumentParser(description="Live touchpad param tuning")
+    parser.add_argument("device", nargs="?", help="Optional device path (e.g. /dev/tty.usbmodemXXX)")
+    parser.add_argument("--timeout", type=int, help="Exit automatically after SECONDS")
+    parsed = parser.parse_args(argv)
+    
+    device = find_right_rpc_device(parsed.device)
 
     print(f"Connecting to right RPC: {device}")
     print(f"Watching: {OVERLAY_FILE}")
@@ -178,7 +190,7 @@ def main(argv: list[str]) -> int:
         prev_params = dict(overlay_params)
 
         try:
-            for _ in watch_file_mtime(OVERLAY_FILE):
+            for _ in watch_file_mtime(OVERLAY_FILE, parsed.timeout):
                 try:
                     new_text = OVERLAY_FILE.read_text()
                 except FileNotFoundError:

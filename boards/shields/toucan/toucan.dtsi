@@ -119,10 +119,11 @@
         device = <&glidepoint_split>;
         input-processors = <&pointer_accel>, <&zip_touch_behaviors>, <&zip_xy_transform INPUT_TRANSFORM_X_INVERT>;
 
-        /* PAN layer (index 4): convert XY movement to scroll events */
+        /* PAN layer (index 4): convert XY movement to scroll events, then scale down the scroll speed */
         pan_override: pan_override {
             layers = <4>;
-            input-processors = <&zip_xy_to_scroll_mapper>;
+            input-processors = <&zip_xy_to_scroll_mapper>, <&zip_scroll_scaler 1 16>;
+            process-next;
         };
     };
 

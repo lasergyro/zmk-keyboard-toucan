@@ -31,7 +31,7 @@ Targets:
   reset-right   Flash settings_reset to the right half only.
 
 Options:
-  --debug           Enter UF2 bootloader via debug RPC before waiting for the volume.
+  --manual          Wait for the volume manually instead of entering UF2 bootloader via debug RPC.
   --dry-run         Print what would happen without waiting for hardware.
   --timeout SEC     Wait up to SEC seconds for a bootloader volume, default: 90
   --volume-root DIR Volume root to watch, default: /Volumes
@@ -49,7 +49,7 @@ SCRIPT_DIR=$(
   cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
   pwd
 )
-REPO_ROOT=$SCRIPT_DIR
+REPO_ROOT=$(dirname "$SCRIPT_DIR")
 ARTIFACTS_DIR=${ARTIFACTS_DIR:-$REPO_ROOT/artifacts}
 VOLUME_ROOT=/Volumes
 VOLUME_GLOB='XIAO*'
@@ -57,7 +57,7 @@ TIMEOUT_SECONDS=90
 COPY_RETRY_COUNT=6
 COPY_RETRY_DELAY_SECONDS=1
 DRY_RUN=0
-DEBUG_MODE=0
+DEBUG_MODE=1
 TARGET=both
 TARGET_SET=0
 
@@ -65,6 +65,10 @@ while (($# > 0)); do
   case "$1" in
     --dry-run)
       DRY_RUN=1
+      shift
+      ;;
+    --manual)
+      DEBUG_MODE=0
       shift
       ;;
     --debug)

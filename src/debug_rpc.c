@@ -32,6 +32,8 @@
 
 #include <toucan/debug_quarantine.h>
 #include <zmk/keymap.h>
+#include <zmk/endpoints.h>
+#include <zmk/ble.h>
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
@@ -527,11 +529,11 @@ static void process_abs_command(char *args) {
 #if defined(CONFIG_SHIELD_TOUCAN_RIGHT)
 
 static const char *const pad_param_keys[] = {
-    "tap_timeout_ms", "drag_window_timeout_ms", "drag_jump_timeout_ms",
-    "pad_off_timeout_ms", "scroll_rim_percent", "drag_jump_rim_percent",
-    "dead_radius_percent", "rclick_x_min_percent", "force_drag_z_threshold",
-    "double_click_drag_z_threshold", "wheel_clicks", "scroll_exclusion_zone_percent",
-    "tap_snap",
+    "tap_timeout_ms", "drag_window_timeout_ms", "drag_pending_timeout_ms",
+    "drag_jump_timeout_ms", "pad_off_timeout_ms", "scroll_rim_percent",
+    "drag_jump_rim_percent", "dead_radius_percent", "rclick_x_min_percent",
+    "force_drag_z_threshold", "double_click_drag_z_threshold", "wheel_clicks",
+    "scroll_exclusion_zone_percent", "tap_snap",
 };
 
 static bool pad_settings_loaded_any = false;
@@ -704,6 +706,51 @@ static void dump_output_queue(const char* verb) {
     snprintf(buf, sizeof(buf), "OK %s %zu", verb, output_queue_len);
     uart_write_str(buf);
 }
+
+#if defined(CONFIG_ZMK_SPLIT_ROLE_CENTRAL) || !defined(CONFIG_ZMK_SPLIT)
+static void process_out_command(const char *args) {
+    if (!args || strlen(args) == 0) {
+        uart_write_str("ERR missing out transport");
+        return;
+    }
+
+    if (strcmp(args, "usb") == 0) {
+        zmk_endpoints_select_transport(ZMK_TRANSPORT_USB);
+        uart_write_str("OK out usb");
+    } else if (strcmp(args, "ble") == 0) {
+        zmk_endpoints_select_transport(ZMK_TRANSPORT_BLE);
+        uart_write_str("OK out ble");
+    } else {
+        uart_write_str("ERR invalid out transport");
+    }
+}
+
+static void process_ble_command(const char *args) {
+    if (!args || strlen(args) == 0) {
+        uart_write_str("ERR missing ble command");
+        return;
+    }
+
+    if (strcmp(args, "clear") == 0) {
+        zmk_ble_clear_all_bonds();
+        uart_write_str("OK ble clear");
+    } else if (strcmp(args, "next") == 0) {
+        zmk_ble_prof_next();
+        uart_write_str("OK ble next");
+    } else if (strcmp(args, "prev") == 0) {
+        zmk_ble_prof_prev();
+        uart_write_str("OK ble prev");
+    } else if (strcmp(args, "status") == 0) {
+        char buf[64];
+        snprintf(buf, sizeof(buf), "OK ble profile=%d connected=%d", 
+                 zmk_ble_active_profile_index(), 
+                 zmk_ble_active_profile_is_connected());
+        uart_write_str(buf);
+    } else {
+        uart_write_str("ERR invalid ble command");
+    }
+}
+#endif
 
 static void tail_timeout_handler(struct k_work *work) {
     if (current_mode == MODE_EXECUTING) {
@@ -967,7 +1014,7 @@ static void process_command(const struct toucan_debug_rpc_cmd *cmd) {
 
         uart_write_str(
             "OK commands: ping identity reset bootloader quarantine layers key tap touch abs move"
-            " get set help");
+            " get set out help");
         return;
     }
 
@@ -1032,6 +1079,24 @@ static void process_command(const struct toucan_debug_rpc_cmd *cmd) {
         process_set_command(args);
 #else
         uart_write_str("ERR get/set only available on right half");
+#endif
+        return;
+    }
+
+    if (strcmp(verb, "out") == 0) {
+#if defined(CONFIG_ZMK_SPLIT_ROLE_CENTRAL) || !defined(CONFIG_ZMK_SPLIT)
+        process_out_command(args);
+#else
+        uart_write_str("ERR out only available on central half");
+#endif
+        return;
+    }
+
+    if (strcmp(verb, "ble") == 0) {
+#if defined(CONFIG_ZMK_SPLIT_ROLE_CENTRAL) || !defined(CONFIG_ZMK_SPLIT)
+        process_ble_command(args);
+#else
+        uart_write_str("ERR ble only available on central half");
 #endif
         return;
     }

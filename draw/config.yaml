@@ -147,6 +147,7 @@ parse_config:
     C_AC_DESKTOP_SHOW_ALL_WINDOWS: "$$mdi:view-grid$$"
     C_AC_SEARCH: "$$mdi:magnify$$"
     C_VOICE_COMMAND: "$$mdi:microphone$$"
+    SYS_DND: "$$mdi:moon-waning-crescent$$"
 
     AMPS: "&"
     AT: "@"

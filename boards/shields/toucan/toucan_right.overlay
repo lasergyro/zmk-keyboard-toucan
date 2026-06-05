@@ -81,13 +81,13 @@
 
         // ── Gesture timing ───────────────────────────────────────────────────
         tap-timeout-ms = <120>;           // finger-down before TAP_PENDING → MOVING
-        drag-window-timeout-ms = <300>;   // window for re-touch after tap to start drag
-        drag-jump-timeout-ms = <500>;     // window to reposition finger across pad during drag
+        drag-window-timeout-ms = <150>;   // window for re-touch after tap to start drag
+        drag-jump-timeout-ms = <300>;     // window to reposition finger across pad during drag
         pad-off-timeout-ms = <200>;       // delay before PAD layer turns off after lift
 
         // ── Gesture zones ────────────────────────────────────────────────────
         scroll-rim-percent = <67>;              // outer scroll ring, % of half-pad-width
-        drag-jump-rim-percent = <30>;           // rim edge for drag-jump detection, % of half-pad-width
+        drag-jump-rim-percent = <0>;           // rim edge for drag-jump detection, % of half-pad-width
         dead-radius-percent = <20>;             // inner dead-zone, % of half-pad-width
         rclick-x-min-percent = <20>;            // right-click zone: x ≤ this % of pad width
         scroll-exclusion-zone-percent = <20>;   // centred y-band that blocks scroll initiation
@@ -101,6 +101,12 @@
 
         // ── Tap behaviour ────────────────────────────────────────────────────
         tap-snap;   // uncomment to discard cursor delta accumulated during TAP_PENDING
+        
+        // ── Enabled Gestures ─────────────────────────────────────────────────
+        tap-enable;
+        rclick-enable;
+        drag-enable;
+        scroll-enable;
     };
 };
 
