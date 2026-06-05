@@ -6,10 +6,10 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent / "scripts"))
 from debug_tool import RPCSession
 
-def verify_ble():
-    print("Starting listen_all...")
+def verify_ble_dnd():
+    print("Starting listen_dnd...")
     listen_proc = subprocess.Popen(
-        ["./tests_c/listen_all"], 
+        ["./tests_c/listen_dnd"], 
         stdout=subprocess.PIPE, 
         stderr=subprocess.PIPE,
         text=True
@@ -23,16 +23,38 @@ def verify_ble():
     print("Forcing output to USB...")
     rpc.request("out usb")
     time.sleep(0.5)
-    print("Tapping key 104 (F13)...")
-    rpc.request("tap 104")
+    
+    print("Activating NAV layer (holding key 19)...")
+    rpc.request("key 19 1")
+    time.sleep(0.5)
+    
+    print("Tapping SYS_DND (key 10)...")
+    rpc.request("key 10 1")
+    time.sleep(0.5)
+    rpc.request("key 10 0")
+    time.sleep(0.5)
+    
+    print("Releasing NAV layer (key 19)...")
+    rpc.request("key 19 0")
     time.sleep(0.5)
     
     print("\n[BLE Test]")
     print("Forcing output to BLE...")
     rpc.request("out ble")
     time.sleep(0.5)
-    print("Tapping key 105 (F14)...")
-    rpc.request("tap 105")
+    
+    print("Activating NAV layer (holding key 19)...")
+    rpc.request("key 19 1")
+    time.sleep(0.5)
+    
+    print("Tapping SYS_DND (key 10)...")
+    rpc.request("key 10 1")
+    time.sleep(0.5)
+    rpc.request("key 10 0")
+    time.sleep(0.5)
+    
+    print("Releasing NAV layer (key 19)...")
+    rpc.request("key 19 0")
     time.sleep(0.5)
     
     print("\nRestoring output to USB...")
@@ -49,12 +71,15 @@ def verify_ble():
     
     print("\n--- Events Received by macOS ---")
     print(stdout)
+    if stderr:
+        print("Errors:")
+        print(stderr)
 
-    usb_received = "Usage=0x68" in stdout # 0x68 is F13
-    ble_received = "Usage=0x69" in stdout # 0x69 is F14
+    usb_success = stdout.count("RECEIVED MUTE") >= 2
+    ble_success = stdout.count("RECEIVED MUTE") >= 4
     
-    print(f"USB F13 Received: {usb_received}")
-    print(f"BLE F14 Received: {ble_received}")
+    print(f"\nUSB Keystroke received: {usb_success}")
+    print(f"BLE Keystroke received: {ble_success}")
     
 if __name__ == "__main__":
-    verify_ble()
+    verify_ble_dnd()

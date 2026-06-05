@@ -15,7 +15,7 @@ void Handle_IOHIDInputValueCallback(
         fflush(stdout);
         // Exit on release
         if (intValue == 0) {
-            exit(0);
+            // do not exit
         }
     }
 }

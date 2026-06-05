@@ -141,11 +141,7 @@ Outputs to `artifacts/debug/`. Always use this for touchpad / overlay changes.
  2. Flash Both Halves
 ```bash
 # Flash both halves over USB RPC (both halves must be connected via USB)
-./debug.sh upload --debug both
-
-# For iterative testing on one half:
-./debug.sh upload --debug left
-./debug.sh upload --debug right
+./debug.sh upload
 ```
 
  3. Verify Devices
@@ -169,7 +165,7 @@ Logs saved to `debug-logs/<timestamp>-<side>-<port>.log`.
 
 #### Build Release Firmware
 ```bash
-./release.sh build && ./release.sh upload both
+./release.sh build && ./release.sh upload
 ```
 
 ---
