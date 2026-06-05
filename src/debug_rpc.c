@@ -715,11 +715,21 @@ static void process_out_command(const char *args) {
     }
 
     if (strcmp(args, "usb") == 0) {
-        zmk_endpoints_select_transport(ZMK_TRANSPORT_USB);
-        uart_write_str("OK out usb");
+        zmk_endpoints_debug_override_transport(ZMK_TRANSPORT_USB);
+        uart_write_str("OK out usb (override)");
     } else if (strcmp(args, "ble") == 0) {
-        zmk_endpoints_select_transport(ZMK_TRANSPORT_BLE);
-        uart_write_str("OK out ble");
+        zmk_endpoints_debug_override_transport(ZMK_TRANSPORT_BLE);
+        uart_write_str("OK out ble (override)");
+    } else if (strcmp(args, "clear") == 0) {
+        zmk_endpoints_clear_debug_override();
+        uart_write_str("OK out clear");
+    } else if (strcmp(args, "status") == 0) {
+        struct zmk_endpoint_instance endpoint = zmk_endpoints_selected();
+        char buf[64];
+        char endpoint_str[32];
+        zmk_endpoint_instance_to_str(endpoint, endpoint_str, sizeof(endpoint_str));
+        snprintf(buf, sizeof(buf), "OK out %s", endpoint_str);
+        uart_write_str(buf);
     } else {
         uart_write_str("ERR invalid out transport");
     }
