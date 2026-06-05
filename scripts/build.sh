@@ -248,6 +248,42 @@ update_workspace() {
   fi
 }
 
+sync_external_repos() {
+  local ext_dir
+  for ext_dir in "$REPO_ROOT"/external/*; do
+    if [[ -d "$ext_dir/.git" ]]; then
+      if [[ -n "$(git -C "$ext_dir" status --porcelain)" ]]; then
+        die "External repo $(basename "$ext_dir") is dirty. Please commit your changes."
+      fi
+    fi
+  done
+
+  local needs_update=0
+  local ext_zmk="$REPO_ROOT/external/zmk"
+  local ws_zmk="$WORKSPACE_DIR/zmk"
+  
+  if [[ ! -d "$ws_zmk/.git" ]]; then
+    needs_update=1
+  elif [[ -d "$ext_zmk/.git" ]]; then
+    local ext_head ws_head
+    ext_head="$(git -C "$ext_zmk" rev-parse HEAD 2>/dev/null || true)"
+    ws_head="$(git -C "$ws_zmk" rev-parse HEAD 2>/dev/null || true)"
+    if [[ -n "$ext_head" && -n "$ws_head" && "$ext_head" != "$ws_head" ]]; then
+      log "external/zmk has new commits ($ext_head != $ws_head)"
+      needs_update=1
+    fi
+  fi
+
+  if (( needs_update )); then
+    if (( SKIP_UPDATE )); then
+      die "Workspace cache is out of date, but --skip-update was provided."
+    fi
+    update_workspace
+  else
+    sync_config_dir
+  fi
+}
+
 determine_toolchain_path() {
   local compiler
   compiler="$(command -v arm-none-eabi-gcc)" || return 1
@@ -407,6 +443,7 @@ build_target() {
 
 main() {
   local bootstrap_only=0
+  local check_repos_only=0
 
   while (($# > 0)); do
     case "$1" in
@@ -419,6 +456,9 @@ main() {
       --skip-update)
         SKIP_UPDATE=1
         ;;
+      --check-repos)
+        check_repos_only=1
+        ;;
       -h|--help)
         usage
         exit 0
@@ -429,6 +469,11 @@ main() {
     esac
     shift
   done
+
+  if (( check_repos_only )); then
+    sync_external_repos
+    exit 0
+  fi
 
   require_file "$BUILD_MATRIX_FILE"
   require_dir "$CONFIG_SOURCE_DIR"
@@ -446,7 +491,7 @@ main() {
   require_command "$WEST_BIN"
 
   init_workspace
-  update_workspace
+  sync_external_repos
 
   export PATH="$VENV_DIR/bin:$PATH"
   export ZEPHYR_TOOLCHAIN_VARIANT=gnuarmemb

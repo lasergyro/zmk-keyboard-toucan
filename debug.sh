@@ -145,12 +145,8 @@ ensure_nanopb_python_compat() {
 }
 
 ensure_workspace() {
-  if [[ -x "$WEST_BIN" && -d "$WORKSPACE_DIR/.west" && -d "$WORKSPACE_DIR/zmk/app" ]]; then
-    return 0
-  fi
-
-  log "Bootstrapping local ZMK workspace"
-  "$REPO_ROOT/build.sh" --bootstrap-only --skip-brew
+  log "Synchronizing local ZMK workspace"
+  "$REPO_ROOT/scripts/build.sh" --bootstrap-only --skip-brew
 }
 
 build_left_debug() {
