@@ -23,3 +23,6 @@ Investigate and resolve why the `SYS_DND` (Do Not Disturb) keycode was not funct
 ## Next Steps / Takeaways
 - Always ensure the correct BLE profile is active and connected (verify with `ble status`) before trusting that `out ble` has switched the transport.
 - When iterating on GATT characteristics or HID report descriptors, stale caching on macOS may require clearing bonds on the board (`ble clear`) and "Forgetting" the device in macOS settings.
+
+### Update on Automated Injection Tests
+Automated host-side verification of keystrokes over BLE/USB via RPC injection (e.g. `test_ble.py`, `test_ble_sys_dnd.py`) has been removed. While the hardware properly sends the HID reports upon physical key presses (as manually verified), ZMK's `inject_key_position` (which flags events with `SOURCE_LOCAL`) does not reliably result in the emission of standard host HID reports over USB/BLE when complex behaviors like momentary layer transitions (`&mo`) are involved. Because the code actually works but cannot be fully verified via RPC, those tests have been deleted and the remaining BLE testing scripts have been consolidated.
