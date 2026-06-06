@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+if [[ -z "${PIXI_PROJECT_ROOT:-}" ]]; then
+  exec pixi run "$0" "$@"
+fi
+
 log() {
   printf '==> %s\n' "$*"
 }
@@ -101,19 +105,7 @@ setup_compiler_cache() {
   log "Using compiler cache launcher: $COMPILER_CACHE_NAME"
 }
 
-ensure_debug_python() {
-  if [[ -n "${PIXI_PROJECT_ROOT:-}" ]] || [[ -d "$REPO_ROOT/.pixi" ]]; then
-    log "Using pixi environment for debug Python"
-    return 0
-  fi
 
-  if [ ! -d "$DEBUG_VENV_DIR" ]; then
-    log "Creating Python virtual environment in $DEBUG_VENV_DIR"
-    uv venv "$DEBUG_VENV_DIR"
-    # Install the project as an editable module
-    uv pip install --python "$DEBUG_PYTHON" -e .
-  fi
-}
 
 copy_artifact() {
   local build_dir=$1
@@ -135,25 +127,7 @@ determine_toolchain_path() {
   dirname "$(dirname "$compiler")"
 }
 
-ensure_nanopb_python_compat() {
-  if [[ -n "${PIXI_PROJECT_ROOT:-}" ]] || [[ -d "$REPO_ROOT/.pixi" ]]; then
-    if pixi run python -c 'import pkg_resources' >/dev/null 2>&1; then
-      return 0
-    fi
-    log "Installing setuptools<81 for nanopb compatibility via Pixi"
-    pixi add --feature zephyr --pypi 'setuptools<81'
-    return 0
-  fi
 
-  require_file "$VENV_DIR/bin/python"
-
-  if "$VENV_DIR/bin/python" -c 'import pkg_resources' >/dev/null 2>&1; then
-    return 0
-  fi
-
-  log "Installing setuptools<81 for nanopb compatibility"
-  "$VENV_DIR/bin/python" -m pip install 'setuptools<81'
-}
 
 ensure_workspace() {
   log "Synchronizing local ZMK workspace"
@@ -209,17 +183,7 @@ COMMAND_ARGS=("${@:2}")
 
 REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
-if [[ -n "${PIXI_PROJECT_ROOT:-}" ]] || [[ -d "$REPO_ROOT/.pixi" ]]; then
-  DEBUG_VENV_DIR="${DEBUG_VENV_DIR:-$REPO_ROOT/.pixi/envs/default}"
-  DEBUG_PYTHON="python"
-  VENV_DIR="${VENV_DIR:-$REPO_ROOT/.pixi/envs/default}"
-  WEST_BIN="west"
-else
-  DEBUG_VENV_DIR="${DEBUG_VENV_DIR:-$REPO_ROOT/.venv}"
-  DEBUG_PYTHON="$DEBUG_VENV_DIR/bin/python"
-  VENV_DIR="${VENV_DIR:-$REPO_ROOT/.zmk-venv}"
-  WEST_BIN="$VENV_DIR/bin/west"
-fi
+WEST_BIN="west"
 
 CONFIG_SOURCE_DIR="$REPO_ROOT/config"
 WORKSPACE_DIR="${WORKSPACE_DIR:-$REPO_ROOT/.zmk-workspace}"
@@ -237,9 +201,7 @@ if [[ "$COMMAND" == "upload" ]]; then
 fi
 
 if [[ "$COMMAND" != "build" ]]; then
-  require_command python3
-  ensure_debug_python
-  exec uv run --python "$DEBUG_PYTHON" toucan-debug "$COMMAND" "${COMMAND_ARGS[@]}"
+  exec toucan-debug "$COMMAND" "${COMMAND_ARGS[@]}"
 fi
 
 require_dir "$CONFIG_SOURCE_DIR"
@@ -249,14 +211,8 @@ ensure_workspace
 require_command "$WEST_BIN"
 sync_config_dir
 
-if [[ -n "${PIXI_PROJECT_ROOT:-}" ]] || [[ -d "$REPO_ROOT/.pixi" ]]; then
-  log "Adding Zephyr Python requirements to Pixi (if needed)"
-  pixi run install-zephyr-deps
-fi
+install-zephyr-deps
 
-ensure_nanopb_python_compat
-
-export PATH="$VENV_DIR/bin:$PATH"
 export ZEPHYR_TOOLCHAIN_VARIANT=gnuarmemb
 GNUARMEMB_TOOLCHAIN_PATH="$(determine_toolchain_path)" || \
   die "Unable to determine the GNU Arm Embedded toolchain path"

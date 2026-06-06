@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+if [[ -z "${PIXI_PROJECT_ROOT:-}" ]]; then
+  exec pixi run "$0" "$@"
+fi
+
 log() {
   printf '==> %s\n' "$*"
 }
@@ -36,7 +40,6 @@ Environment overrides:
   BUILD_ROOT         Per-target build directory root
   ARTIFACT_ROOT      Firmware output directory
   FALLBACK_BINARY    Artifact extension to use when no .uf2 was produced
-  PYTHON_BIN         Python interpreter to use for the virtualenv bootstrap
   RUN_ZEPHYR_EXPORT  Set to 1 to run "west zephyr-export"
   BUILD_PRISTINE     west pristine mode to use (default: auto)
   COMPILER_CACHE     Compiler launcher to use (auto-detects ccache/sccache)
@@ -58,31 +61,7 @@ require_command() {
   command -v "$cmd" >/dev/null 2>&1 || die "Required command not found: $cmd"
 }
 
-pick_python() {
-  local -a candidates=()
 
-  if [[ -n "${PYTHON_BIN:-}" ]]; then
-    candidates+=("$PYTHON_BIN")
-  fi
-
-  candidates+=(python3.12 python3)
-
-  local candidate
-  for candidate in "${candidates[@]}"; do
-    [[ -n "$candidate" ]] || continue
-    if ! command -v "$candidate" >/dev/null 2>&1; then
-      continue
-    fi
-
-    if "$candidate" -m pip --version >/dev/null 2>&1 && \
-       "$candidate" -m venv --help >/dev/null 2>&1; then
-      printf '%s\n' "$candidate"
-      return 0
-    fi
-  done
-
-  return 1
-}
 
 ensure_homebrew_packages() {
   (( SKIP_BREW )) && return
@@ -176,45 +155,7 @@ ensure_host_tools() {
   require_command arm-none-eabi-gcc
 }
 
-setup_virtualenv() {
-  local python_bin=$1
 
-  if [[ -n "${PIXI_PROJECT_ROOT:-}" ]] || [[ -d "$REPO_ROOT/.pixi" ]]; then
-    log "Using pixi environment"
-    VENV_DIR="$REPO_ROOT/.pixi/envs/default"
-    return 0
-  fi
-
-  if [[ ! -x "$VENV_DIR/bin/python" ]]; then
-    log "Creating virtualenv in $VENV_DIR"
-    "$python_bin" -m venv "$VENV_DIR"
-  fi
-
-  if [[ ! -x "$VENV_DIR/bin/west" ]]; then
-    log "Installing Python build dependencies"
-    "$VENV_DIR/bin/python" -m pip install --upgrade pip west
-  else
-    log "Using existing Python build environment in $VENV_DIR"
-  fi
-}
-
-ensure_nanopb_python_compat() {
-  if [[ -n "${PIXI_PROJECT_ROOT:-}" ]] || [[ -d "$REPO_ROOT/.pixi" ]]; then
-    if pixi run python -c 'import pkg_resources' >/dev/null 2>&1; then
-      return 0
-    fi
-    log "Installing setuptools<81 for nanopb compatibility via Pixi"
-    pixi add --pypi 'setuptools<81'
-    return 0
-  fi
-
-  if "$VENV_DIR/bin/python" -c 'import pkg_resources' >/dev/null 2>&1; then
-    return 0
-  fi
-
-  log "Installing setuptools<81 for nanopb compatibility"
-  "$VENV_DIR/bin/python" -m pip install 'setuptools<81'
-}
 
 sync_config_dir() {
   mkdir -p "$WORKSPACE_DIR" "$BUILD_ROOT" "$ARTIFACT_ROOT"
@@ -250,14 +191,7 @@ update_workspace() {
   local zephyr_requirements="$WORKSPACE_DIR/zephyr/scripts/requirements.txt"
   require_file "$zephyr_requirements"
 
-  if [[ -z "${PIXI_PROJECT_ROOT:-}" ]] && [[ ! -d "$REPO_ROOT/.pixi" ]]; then
-    log "Installing Zephyr Python requirements"
-    "$VENV_DIR/bin/python" -m pip install -r "$zephyr_requirements"
-    ensure_nanopb_python_compat
-  else
-    log "Adding Zephyr Python requirements to Pixi (if needed)"
-    pixi run install-zephyr-deps
-  fi
+  install-zephyr-deps
 
   if (( RUN_ZEPHYR_EXPORT )); then
     log "Exporting Zephyr CMake package"
@@ -501,19 +435,14 @@ main() {
   ensure_homebrew_packages
   ensure_host_tools
 
-  local python_bin
-  python_bin="$(pick_python)" || \
-    die "No suitable Python interpreter found. Install python@3.12 or set PYTHON_BIN."
-
-  setup_virtualenv "$python_bin"
-  WEST_BIN="$VENV_DIR/bin/west"
+  WEST_BIN="west"
 
   require_command "$WEST_BIN"
 
   init_workspace
   sync_external_repos
 
-  export PATH="$VENV_DIR/bin:$PATH"
+
   export ZEPHYR_TOOLCHAIN_VARIANT=gnuarmemb
   GNUARMEMB_TOOLCHAIN_PATH="$(determine_toolchain_path)" || \
     die "Unable to determine the GNU Arm Embedded toolchain path"
@@ -543,7 +472,6 @@ BUILD_MATRIX_FILE="${BUILD_MATRIX_FILE:-$REPO_ROOT/build.yaml}"
 CONFIG_SOURCE_DIR="${CONFIG_SOURCE_DIR:-$REPO_ROOT/config}"
 WORKSPACE_DIR="${WORKSPACE_DIR:-$REPO_ROOT/.zmk-workspace}"
 WORKSPACE_CONFIG_DIR="$WORKSPACE_DIR/config"
-VENV_DIR="${VENV_DIR:-$REPO_ROOT/.zmk-venv}"
 BUILD_ROOT="${BUILD_ROOT:-$REPO_ROOT/build}"
 ARTIFACT_ROOT="${ARTIFACT_ROOT:-$REPO_ROOT/artifacts}"
 FALLBACK_BINARY="${FALLBACK_BINARY:-bin}"

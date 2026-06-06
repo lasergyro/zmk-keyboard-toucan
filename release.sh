@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+if [[ -z "${PIXI_PROJECT_ROOT:-}" ]]; then
+  exec pixi run "$0" "$@"
+fi
+
 usage() {
   cat <<'EOF'
 Usage: ./release.sh [command]
@@ -35,11 +39,7 @@ case "$COMMAND" in
     COMMAND_ARGS=("${NEW_ARGS[@]}")
 
     if [[ $FORCE_CHANGE == 0 ]]; then
-      local run_cmd="uv run"
-      if [[ -n "${PIXI_PROJECT_ROOT:-}" ]] || [[ -d "$REPO_ROOT/.pixi" ]]; then
-        run_cmd="pixi run python"
-      fi
-      if $run_cmd "$REPO_ROOT/scripts/debug_tool.py" devices 2>/dev/null | grep -q "type=rpc"; then
+      if toucan-debug devices 2>/dev/null | grep -q "type=rpc"; then
         echo "error: A Toucan device running debug firmware is connected via USB." >&2
         echo "To overwrite debug firmware with a release version, you must pass '--change'." >&2
         exit 1

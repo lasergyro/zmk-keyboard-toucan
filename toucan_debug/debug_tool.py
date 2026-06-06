@@ -530,7 +530,9 @@ class RPCSession:
         return output
 
 
-def main(argv: Iterable[str]) -> int:
+def main(argv: Iterable[str] | None = None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
     args = list(argv)
     command = args[0] if args else "help"
     command_args = args[1:]
