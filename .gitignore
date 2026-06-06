@@ -12,7 +12,5 @@ debug-logs/
 __pycache__/
 **/__pycache__/
 .pytest_cache/
-tests_c/listen_all
-tests_c/listen_dnd
-tests_c/*.dSYM.vscode/
 *.egg-info/
+scratch/

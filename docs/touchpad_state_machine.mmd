@@ -24,9 +24,14 @@ stateDiagram-v2
 
     %% ── Transitions from DRAG_WINDOW ───────────────────────────────────────────
 
-    DRAG_WINDOW --> DRAGGING    : contact [z ≥ DOUBLE_CLICK_DRAG_Z_THRESHOLD]
-    DRAG_WINDOW --> TAP_PENDING : contact [z < DOUBLE_CLICK_DRAG_Z_THRESHOLD]
-    DRAG_WINDOW --> INACTIVE    : drag_window_timeout fires
+    DRAG_WINDOW --> DRAGGING_PENDING : contact [z ≥ DOUBLE_CLICK_DRAG_Z_THRESHOLD]
+    DRAG_WINDOW --> TAP_PENDING      : contact [z < DOUBLE_CLICK_DRAG_Z_THRESHOLD]
+    DRAG_WINDOW --> INACTIVE         : drag_window_timeout fires
+
+    %% ── Transitions from DRAGGING_PENDING ──────────────────────────────────────
+
+    DRAGGING_PENDING --> INACTIVE : lift [before timeout] (Double Tap)
+    DRAGGING_PENDING --> DRAGGING : drag_pending_timeout fires [contact]
 
     %% ── Transitions from DRAGGING ──────────────────────────────────────────────
 
@@ -119,9 +124,11 @@ stateDiagram-v2
         Waiting for re-touch to begin drag
         ──────────────────────────────────────────
         → contact [z ≥ DOUBLE_CLICK_DRAG_Z_THRESHOLD]:
-            prev_scaled_x/y ← current  (snap)
+            emit is_left ? BTN_0=0 : BTN_1=0  (release, sync)
+            prev_scaled_x/y ← current
             cancel drag_window_timeout
-            [enter DRAGGING — PAD stays ON]
+            schedule drag_pending_timeout
+            [enter DRAGGING_PENDING — PAD stays ON]
         → contact [z < DOUBLE_CLICK_DRAG_Z_THRESHOLD]:
             emit is_left ? BTN_0=0 : BTN_1=0  (release, sync)
             cancel drag_window_timeout
@@ -133,6 +140,23 @@ stateDiagram-v2
         → drag_window_timeout:
             emit is_left ? BTN_0=0 : BTN_1=0  (release, sync)
             schedule pad_off timer  [deferred PAD OFF]
+    end note
+
+    note right of DRAGGING_PENDING
+        Finger: down · Button: none
+        Timer: drag_pending_timeout armed
+        Per-packet: cursor movement SUPPRESSED
+        ──────────────────────────────────────────
+        → lift [before timeout]:
+            cancel drag_pending_timeout
+            emit is_left ? BTN_0=1 : BTN_1=1  (button down, sync)
+            schedule tap_click_work (button up after 60ms)
+            schedule pad_off timer  [deferred PAD OFF]
+            [enter INACTIVE]  (Double Tap)
+        → drag_pending_timeout [contact]:
+            if tap-snap: prev_scaled_x/y ← current
+            emit is_left ? BTN_0=1 : BTN_1=1  (button down, sync)
+            [enter DRAGGING — PAD stays ON]
     end note
 
     note right of DRAGGING
