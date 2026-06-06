@@ -87,7 +87,6 @@ When flashing UF2 firmware to devices (e.g. XIAO nRF52840 in bootloader mode), m
 
 1. **Full Reset**: `./release.sh upload reset`
 2. **Physical Reset**: Double-tap RST on each XIAO → bootloader → drop UF2 manually.
-3. **Touchpad First**: Right half owns Pinnacle hardware — flash it first if pad dies.
 
 **BLE vs USB**: ZMK routes mouse events over USB when plugged in. Unplug after flashing to test BLE behavior.
 
@@ -95,7 +94,7 @@ When flashing UF2 firmware to devices (e.g. XIAO nRF52840 in bootloader mode), m
 
 ### Tests
 
-All tests (e.g., `tests/test_pad.py`, `tests/test_simple_rpc.py`) should follow this standard recipe:
+All tests (in `tests/`) should follow this standard recipe:
 
 #### Test Recipe
 1. **Clean Abstraction**: Import and use `debug_tool.RPCSession` from `scripts/debug_tool.py` for all communication. Never import `serial_rpc.py` directly.
@@ -168,7 +167,6 @@ pixi run python tests/test_pad.py
  5. Live Logs
 ```bash
 ./debug.sh logs both
-./debug.sh logs right   # Pinnacle driver logs appear here
 ```
 Logs saved to `debug-logs/<timestamp>-<side>-<port>.log`.
 
