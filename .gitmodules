@@ -1,14 +1,15 @@
 [submodule "external/cirque-input-module"]
 	path = external/cirque-input-module
-	url = https://github.com/geeksville/cirque-input-module
+	url = https://github.com/lasergyro/cirque-input-module.git
 	branch = toucan
 [submodule "external/zmk-input-gestures"]
 	path = external/zmk-input-gestures
-	url = https://github.com/bennypowers/zmk-input-gestures
+	url = https://github.com/lasergyro/zmk-input-gestures.git
+	branch = toucan
 [submodule "external/zmk"]
 	path = external/zmk
-	url = https://github.com/zmkfirmware/zmk.git
-	branch = toucan-fork
+	url = https://github.com/lasergyro/zmk.git
+	branch = toucan
 [submodule "references/model"]
 	path = references/model
 	url = https://github.com/geeksville/zmk-urob-geeksville
