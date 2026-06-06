@@ -1,11 +1,7 @@
 import math
 import sys
 import time
-from pathlib import Path
-
-# Add scripts to path
-sys.path.append(str(Path(__file__).resolve().parent.parent.parent / "scripts"))
-from debug_tool import RPCSession
+from toucan_debug.debug_tool import RPCSession
 
 # Pinnacle coordinate space (0-2047), center=(1024,1024).
 CENTER_X = 1024

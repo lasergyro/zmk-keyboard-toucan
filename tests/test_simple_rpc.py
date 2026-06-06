@@ -9,28 +9,25 @@ Standardized Simple RPC Test.
 import sys
 from pathlib import Path
 
-# Add scripts to path
-sys.path.append(str(Path(__file__).resolve().parent.parent / "scripts"))
-from debug_tool import RPCSession
+from toucan_debug.debug_tool import RPCSession
 
-def test_simple_rpc_standardized():
-    with RPCSession("left") as s:
-        s.request("clear")
-        s.request("quarantine on")
+def test_simple_rpc_standardized(rpc_left):
+    rpc_left.request("clear")
+    rpc_left.request("quarantine on")
+    
+    scenario = [
+        "P,0,0,1",
+        "P,100,0,0"
+    ]
+    
+    trace = rpc_left.run_scenario(scenario)
+    
+    rpc_left.request("quarantine off")
+    rpc_left.request("clear")
         
-        scenario = [
-            "P,0,0,1",
-            "P,100,0,0"
-        ]
-        
-        trace = s.run_scenario(scenario)
-        
-        s.request("quarantine off")
-        s.request("clear")
-        
-        has_tab = False
-        for line in trace:
-            if "K," in line and ",43,1" in line:
-                has_tab = True
-                
-        assert has_tab, "Expected Tab keycode not found in trace."
+    has_tab = False
+    for line in trace:
+        if "K," in line and ",43,1" in line:
+            has_tab = True
+            
+    assert has_tab, "Expected Tab keycode not found in trace."

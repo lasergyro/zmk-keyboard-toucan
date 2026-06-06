@@ -102,14 +102,11 @@ setup_compiler_cache() {
 }
 
 ensure_debug_python() {
-  if [[ ! -x "$DEBUG_PYTHON" ]]; then
-    log "Creating debug Python virtualenv"
-    python3 -m venv "$DEBUG_VENV_DIR"
-  fi
-
-  if ! "$DEBUG_PYTHON" -c 'import serial' >/dev/null 2>&1; then
-    log "Installing pyserial into $DEBUG_VENV_DIR"
-    "$DEBUG_PYTHON" -m pip install --upgrade pip pyserial
+  if [ ! -d "$DEBUG_VENV_DIR" ]; then
+    log "Creating Python virtual environment in $DEBUG_VENV_DIR"
+    uv venv "$DEBUG_VENV_DIR"
+    # Install the project as an editable module
+    uv pip install --python "$DEBUG_PYTHON" -e .
   fi
 }
 
@@ -219,7 +216,7 @@ fi
 if [[ "$COMMAND" != "build" ]]; then
   require_command python3
   ensure_debug_python
-  exec "$DEBUG_PYTHON" "$REPO_ROOT/scripts/debug_tool.py" "$COMMAND" "${COMMAND_ARGS[@]}"
+  exec uv run --python "$DEBUG_PYTHON" toucan-debug "$COMMAND" "${COMMAND_ARGS[@]}"
 fi
 
 require_dir "$CONFIG_SOURCE_DIR"

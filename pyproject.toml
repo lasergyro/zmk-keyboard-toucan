@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "toucan-debug"
+version = "0.1.0"
+description = "Debug tools for Toucan ZMK Keyboard"
+requires-python = ">=3.10"
+dependencies = [
+    "pyserial",
+    "pytest",
+]
+
+[project.scripts]
+toucan-debug = "toucan_debug.debug_tool:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["toucan_debug*"]

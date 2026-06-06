@@ -1,12 +1,8 @@
 import pytest
 import sys
-from pathlib import Path
+from toucan_debug.debug_tool import RPCSession
 
-# Add scripts to path so we can import debug_tool
-sys.path.append(str(Path(__file__).resolve().parent.parent.parent / "scripts"))
-from debug_tool import RPCSession
-
-from .helpers import reset_touch_state_dual
+from pad.helpers import reset_touch_state_dual
 
 @pytest.fixture(scope="session")
 def rpc_right():

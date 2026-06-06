@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable
 
-from serial_rpc import SerialRPCSession, request_lines, serial
+from .serial_rpc import SerialRPCSession, request_lines, serial
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]

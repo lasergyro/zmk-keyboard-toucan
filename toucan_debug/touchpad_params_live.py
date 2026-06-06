@@ -27,8 +27,8 @@ import time
 from pathlib import Path
 from typing import Dict
 
-from serial_rpc import SerialRPCSession, request_lines
-from debug_tool import inventory
+from .serial_rpc import SerialRPCSession, request_lines
+from .debug_tool import inventory
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 OVERLAY_FILE = REPO_ROOT / "boards" / "shields" / "toucan" / "toucan_right.overlay"
