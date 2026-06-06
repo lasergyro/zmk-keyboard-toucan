@@ -102,6 +102,11 @@ setup_compiler_cache() {
 }
 
 ensure_debug_python() {
+  if [[ -n "${PIXI_PROJECT_ROOT:-}" ]] || [[ -d "$REPO_ROOT/.pixi" ]]; then
+    log "Using pixi environment for debug Python"
+    return 0
+  fi
+
   if [ ! -d "$DEBUG_VENV_DIR" ]; then
     log "Creating Python virtual environment in $DEBUG_VENV_DIR"
     uv venv "$DEBUG_VENV_DIR"
@@ -131,6 +136,15 @@ determine_toolchain_path() {
 }
 
 ensure_nanopb_python_compat() {
+  if [[ -n "${PIXI_PROJECT_ROOT:-}" ]] || [[ -d "$REPO_ROOT/.pixi" ]]; then
+    if pixi run python -c 'import pkg_resources' >/dev/null 2>&1; then
+      return 0
+    fi
+    log "Installing setuptools<81 for nanopb compatibility via Pixi"
+    pixi add --pypi 'setuptools<81'
+    return 0
+  fi
+
   require_file "$VENV_DIR/bin/python"
 
   if "$VENV_DIR/bin/python" -c 'import pkg_resources' >/dev/null 2>&1; then
@@ -194,13 +208,22 @@ COMMAND=${1:-build}
 COMMAND_ARGS=("${@:2}")
 
 REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-DEBUG_VENV_DIR="${DEBUG_VENV_DIR:-$REPO_ROOT/.venv}"
-DEBUG_PYTHON="$DEBUG_VENV_DIR/bin/python"
+
+if [[ -n "${PIXI_PROJECT_ROOT:-}" ]] || [[ -d "$REPO_ROOT/.pixi" ]]; then
+  DEBUG_VENV_DIR="${DEBUG_VENV_DIR:-$REPO_ROOT/.pixi/envs/default}"
+  DEBUG_PYTHON="python"
+  VENV_DIR="${VENV_DIR:-$REPO_ROOT/.pixi/envs/default}"
+  WEST_BIN="west"
+else
+  DEBUG_VENV_DIR="${DEBUG_VENV_DIR:-$REPO_ROOT/.venv}"
+  DEBUG_PYTHON="$DEBUG_VENV_DIR/bin/python"
+  VENV_DIR="${VENV_DIR:-$REPO_ROOT/.zmk-venv}"
+  WEST_BIN="$VENV_DIR/bin/west"
+fi
+
 CONFIG_SOURCE_DIR="$REPO_ROOT/config"
 WORKSPACE_DIR="${WORKSPACE_DIR:-$REPO_ROOT/.zmk-workspace}"
 WORKSPACE_CONFIG_DIR="$WORKSPACE_DIR/config"
-VENV_DIR="${VENV_DIR:-$REPO_ROOT/.zmk-venv}"
-WEST_BIN="$VENV_DIR/bin/west"
 BUILD_DIR="${BUILD_DIR:-$REPO_ROOT/build/debug}"
 ARTIFACT_DIR="${ARTIFACT_DIR:-$REPO_ROOT/artifacts/debug}"
 BUILD_PRISTINE="${BUILD_PRISTINE:-always}"
@@ -225,6 +248,12 @@ require_command arm-none-eabi-gcc
 ensure_workspace
 require_command "$WEST_BIN"
 sync_config_dir
+
+if [[ -n "${PIXI_PROJECT_ROOT:-}" ]] || [[ -d "$REPO_ROOT/.pixi" ]]; then
+  log "Adding Zephyr Python requirements to Pixi (if needed)"
+  pixi run install-zephyr-deps
+fi
+
 ensure_nanopb_python_compat
 
 export PATH="$VENV_DIR/bin:$PATH"

@@ -62,6 +62,11 @@ Keymap visualization config (annotation positions, colors, binding labels) in [d
 
 ### First time setup:
 
+#### Environment Setup
+This repository uses `pixi` to manage its Python environment and Zephyr dependencies.
+1. Install [pixi](https://pixi.sh/latest/#installation).
+2. The environment will be automatically instantiated the first time you run a build command like `./debug.sh build` or when you run Python scripts via `pixi run python`.
+
 #### OS Setup Instructions (macOS)
 To get the best experience out of the Toucan trackpad on macOS, you should perform the following configuration:
 1. **Disable Mouse Acceleration**: macOS's native mouse acceleration curve can make the small Toucan trackpad feel floaty. You should disable it completely in macOS System Settings > Mouse > Advanced, or by using a tool like LinearMouse.
@@ -168,7 +173,22 @@ Logs saved to `debug-logs/<timestamp>-<side>-<port>.log`.
 ./release.sh build && ./release.sh upload
 ```
 
----
+### Contributing
+
+When contributing to this repository or its submodules, please format your commit messages according to the **[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)** specification. This makes the project history highly readable and structured.
+
+**Format**:
+`<type>(<optional scope>): <description>`
+
+**Allowed Types**:
+- `feat:` for new features or hardware capabilities.
+- `fix:` for bug fixes.
+- `chore:` for updating dependencies, build scripts, IDE configs, or submodules.
+- `docs:` for modifying markdown documentation or diagrams.
+- `test:` for adding or fixing tests.
+- `refactor:` for restructuring code without changing behavior.
+
+*Example*: `feat(pad): add tap-to-drag gesture support`
 
 ## Architecture
 
@@ -217,7 +237,7 @@ The `config/west.yml` declares multiple upstream dependencies which currently tr
 | [config/combos.dtsi](config/combos.dtsi) | Two-key combo definitions |
 | [config/leader.dtsi](config/leader.dtsi) / [config/leader_greek.dtsi](config/leader_greek.dtsi) | Leader sequences (SYS, German, Greek namespaces) |
 
-## Agent Command Guidelines
+## Agent Guidelines
 
 **Knowledge Item Reference**: The core commands and workflow constraints for this project have been extracted to a [Knowledge Item](.gemini/knowledge/toucan_basic_commands/artifacts/commands.md), and are repeated below.
 
@@ -237,9 +257,9 @@ To prevent repetitive mistakes during future sessions, follow these rules when u
 - **Flash Firmware:**
   `./debug.sh upload` 
 - **Execute Python:**
-  All python scripts must be run via `uv run`.
+  All python scripts must be run via `pixi run python`.
 - **Execute Python Tests:**
-  e.g. `uv run tests/test_pad.py`
+  e.g. `pixi run python tests/test_pad.py`
 - **Stream Live Device Logs:**
   `./debug.sh logs both`
 
@@ -255,24 +275,3 @@ The code in this repo is available under the MIT license.
 The included shield nice_view_gem is modified from https://github.com/M165437/nice-view-gem licensed under the MIT License.
 ZMK code snippets are taken from the ZMK documentation under the MIT license.
 The embedded font QuinqueFive is designed by GGBotNet, licensed under the SIL Open Font License, Version 1.1.
-
-
----
-
-## Contributing
-
-When contributing to this repository or its submodules, please format your commit messages according to the **[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)** specification. This makes the project history highly readable and structured.
-
-**Format**:
-`<type>(<optional scope>): <description>`
-
-**Allowed Types**:
-- `feat:` for new features or hardware capabilities.
-- `fix:` for bug fixes.
-- `chore:` for updating dependencies, build scripts, IDE configs, or submodules.
-- `docs:` for modifying markdown documentation or diagrams.
-- `test:` for adding or fixing tests.
-- `refactor:` for restructuring code without changing behavior.
-
-*Example*: `feat(pad): add tap-to-drag gesture support`
-

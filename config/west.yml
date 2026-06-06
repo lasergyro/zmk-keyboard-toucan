@@ -17,7 +17,7 @@ manifest:
   projects:
     - name: zmk
       url: ../../external/zmk
-      revision: toucan
+      revision: HEAD
       import: app/west.yml
     - name: zmk-helpers
       remote: urob

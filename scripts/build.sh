@@ -179,6 +179,12 @@ ensure_host_tools() {
 setup_virtualenv() {
   local python_bin=$1
 
+  if [[ -n "${PIXI_PROJECT_ROOT:-}" ]] || [[ -d "$REPO_ROOT/.pixi" ]]; then
+    log "Using pixi environment"
+    VENV_DIR="$REPO_ROOT/.pixi/envs/default"
+    return 0
+  fi
+
   if [[ ! -x "$VENV_DIR/bin/python" ]]; then
     log "Creating virtualenv in $VENV_DIR"
     "$python_bin" -m venv "$VENV_DIR"
@@ -193,6 +199,15 @@ setup_virtualenv() {
 }
 
 ensure_nanopb_python_compat() {
+  if [[ -n "${PIXI_PROJECT_ROOT:-}" ]] || [[ -d "$REPO_ROOT/.pixi" ]]; then
+    if pixi run python -c 'import pkg_resources' >/dev/null 2>&1; then
+      return 0
+    fi
+    log "Installing setuptools<81 for nanopb compatibility via Pixi"
+    pixi add --pypi 'setuptools<81'
+    return 0
+  fi
+
   if "$VENV_DIR/bin/python" -c 'import pkg_resources' >/dev/null 2>&1; then
     return 0
   fi
@@ -228,16 +243,21 @@ update_workspace() {
     log "Updating west projects"
     (
       cd "$WORKSPACE_DIR"
-      "$WEST_BIN" update --fetch-opt=--filter=tree:0
+      "$WEST_BIN" update --narrow --fetch-opt=--depth=1
     )
   fi
 
   local zephyr_requirements="$WORKSPACE_DIR/zephyr/scripts/requirements.txt"
   require_file "$zephyr_requirements"
 
-  log "Installing Zephyr Python requirements"
-  "$VENV_DIR/bin/python" -m pip install -r "$zephyr_requirements"
-  ensure_nanopb_python_compat
+  if [[ -z "${PIXI_PROJECT_ROOT:-}" ]] && [[ ! -d "$REPO_ROOT/.pixi" ]]; then
+    log "Installing Zephyr Python requirements"
+    "$VENV_DIR/bin/python" -m pip install -r "$zephyr_requirements"
+    ensure_nanopb_python_compat
+  else
+    log "Adding Zephyr Python requirements to Pixi (if needed)"
+    pixi run install-zephyr-deps
+  fi
 
   if (( RUN_ZEPHYR_EXPORT )); then
     log "Exporting Zephyr CMake package"
