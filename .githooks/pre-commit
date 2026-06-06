@@ -12,7 +12,7 @@ if [ -f "$CACHE_FILE" ] && [ "$HASH" == "$(cat $CACHE_FILE)" ]; then
 fi
 
 echo "Keymap inputs changed. Re-rendering SVG locally..."
-if ./draw-keymap.sh; then
+if pixi run ./draw-keymap.sh; then
     echo "$HASH" > "$CACHE_FILE"
     
     # Store the generated SVGs in a detached branch 'keymap-render' without touching the working tree

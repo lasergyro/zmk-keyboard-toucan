@@ -25,8 +25,8 @@ Options:
   -h, --help           Show this help text
 
 Environment overrides:
-  PYTHON_BIN             Python interpreter to use (default: pixi run python)
-  KEYMAP_BIN             Keymap-drawer binary to use (default: pixi run keymap)
+  PYTHON_BIN             Python interpreter to use
+  KEYMAP_BIN             Keymap-drawer binary to use
   DRAW_ROOT              Output directory for generated artifacts
   DRAW_CONFIG            keymap-drawer config file
   PREPARE_SCRIPT         YAML post-processor that builds base/keymap inputs
@@ -56,7 +56,7 @@ require_command() {
 
 apply_kd_patches() {
   local site_draw
-  site_draw=$(pixi run python -c "import keymap_drawer.draw; import os; print(os.path.dirname(keymap_drawer.draw.__file__))")
+  site_draw=$($PYTHON_BIN -c "import keymap_drawer.draw; import os; print(os.path.dirname(keymap_drawer.draw.__file__))")
   local patch_dir="$SCRIPT_DIR/draw/kd_patches"
   if [[ -d "$patch_dir" ]]; then
     for f in "$patch_dir"/*.py; do
@@ -102,6 +102,8 @@ SCRIPT_DIR=$(
 )
 REPO_ROOT=$SCRIPT_DIR
 
+PYTHON_BIN=${PYTHON_BIN:-python}
+KEYMAP_BIN=${KEYMAP_BIN:-keymap}
 DRAW_ROOT=${DRAW_ROOT:-$REPO_ROOT/draw}
 DRAW_CONFIG=${DRAW_CONFIG:-$DRAW_ROOT/config.yaml}
 PREPARE_SCRIPT=${PREPARE_SCRIPT:-$DRAW_ROOT/generate-keymaps.rb}
@@ -114,7 +116,7 @@ BASE_SVG_OUTPUT=${BASE_SVG_OUTPUT:-$DRAW_ROOT/base.svg}
 KEYMAP_YAML_OUTPUT=${KEYMAP_YAML_OUTPUT:-$DRAW_ROOT/keymap.yaml}
 KEYMAP_SVG_OUTPUT=${KEYMAP_SVG_OUTPUT:-$DRAW_ROOT/keymap.svg}
 
-require_command pixi
+
 require_file "$DRAW_CONFIG"
 require_file "$KEYMAP_FILE"
 require_file "$LAYOUT_FILE"
@@ -139,16 +141,16 @@ ruby -ryaml -e '
 ' "$DRAW_CONFIG" > "$KD_PARSE_CONFIG"
 
 log "Parsing $KEYMAP_FILE"
-pixi run keymap -c "$KD_PARSE_CONFIG" parse -z "$KEYMAP_FILE" --virtual-layers Combos > "$RAW_YAML_OUTPUT"
+"$KEYMAP_BIN" -c "$KD_PARSE_CONFIG" parse -z "$KEYMAP_FILE" --virtual-layers Combos > "$RAW_YAML_OUTPUT"
 
 log "Preparing draw YAML"
 ruby "$PREPARE_SCRIPT" "$RAW_YAML_OUTPUT" "$BASE_YAML_OUTPUT" "$KEYMAP_YAML_OUTPUT" "$LEADER_CONFIG" "$DRAW_CONFIG" "$KD_DRAW_CONFIG"
 
 log "Drawing $BASE_SVG_OUTPUT"
-pixi run keymap -c "$KD_DRAW_CONFIG" draw "$BASE_YAML_OUTPUT" -j "$LAYOUT_FILE" > "$BASE_SVG_OUTPUT"
+"$KEYMAP_BIN" -c "$KD_DRAW_CONFIG" draw "$BASE_YAML_OUTPUT" -j "$LAYOUT_FILE" > "$BASE_SVG_OUTPUT"
 
 log "Drawing $KEYMAP_SVG_OUTPUT"
-pixi run keymap -c "$KD_DRAW_CONFIG" draw "$KEYMAP_YAML_OUTPUT" -j "$LAYOUT_FILE" > "$KEYMAP_SVG_OUTPUT"
+"$KEYMAP_BIN" -c "$KD_DRAW_CONFIG" draw "$KEYMAP_YAML_OUTPUT" -j "$LAYOUT_FILE" > "$KEYMAP_SVG_OUTPUT"
 
 log "Wrote $RAW_YAML_OUTPUT"
 log "Wrote $BASE_YAML_OUTPUT"
