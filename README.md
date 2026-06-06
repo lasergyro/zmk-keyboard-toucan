@@ -258,3 +258,21 @@ The embedded font QuinqueFive is designed by GGBotNet, licensed under the SIL Op
 
 
 ---
+
+## Contributing
+
+When contributing to this repository or its submodules, please format your commit messages according to the **[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)** specification. This makes the project history highly readable and structured.
+
+**Format**:
+`<type>(<optional scope>): <description>`
+
+**Allowed Types**:
+- `feat:` for new features or hardware capabilities.
+- `fix:` for bug fixes.
+- `chore:` for updating dependencies, build scripts, IDE configs, or submodules.
+- `docs:` for modifying markdown documentation or diagrams.
+- `test:` for adding or fixing tests.
+- `refactor:` for restructuring code without changing behavior.
+
+*Example*: `feat(pad): add tap-to-drag gesture support`
+
