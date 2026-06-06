@@ -1,5 +1,7 @@
 # ZMK config for beekeeb Toucan Keyboard
 
+![Toucan Keymap](https://raw.githubusercontent.com/lasergyro/zmk-keyboard-toucan/keymap-render/keymap.svg?sanitize=true)
+
 [The beekeeb Toucan Keyboard](https://beekeeb.com/toucan-keyboard/) is a wireless split 42-key column‑stagger keyboard with a display and a trackpad, featuring an aggressive stagger on the pinky columns.
 
 ## Overview

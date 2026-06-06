@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+set -e
+
+# Calculate a hash of all input files relevant to the keymap
+HASH=$(cat config/toucan.keymap config/toucan.json config/combos.dtsi config/leader.dtsi draw/config.yaml draw/generate-keymaps.rb 2>/dev/null | shasum | awk '{print $1}')
+CACHE_FILE="draw/.cache_hash"
+
+if [ -f "$CACHE_FILE" ] && [ "$HASH" == "$(cat $CACHE_FILE)" ]; then
+    # Cache hit, no changes
+    exit 0
+fi
+
+echo "Keymap inputs changed. Re-rendering SVG locally..."
+if ./draw-keymap.sh; then
+    echo "$HASH" > "$CACHE_FILE"
+    
+    # Store the generated SVGs in a detached branch 'keymap-render' without touching the working tree
+    if [ -f "draw/keymap.svg" ] && [ -f "draw/base.svg" ]; then
+        BLOB_SVG=$(git hash-object -w draw/keymap.svg)
+        BLOB_BASE=$(git hash-object -w draw/base.svg)
+        
+        TREE=$(git mktree <<EOF
+100644 blob $BLOB_SVG	keymap.svg
+100644 blob $BLOB_BASE	base.svg
+EOF
+)
+        
+        # Get previous commit on keymap-render if it exists
+        PARENT=""
+        if git show-ref --verify --quiet refs/heads/keymap-render; then
+            PARENT="-p refs/heads/keymap-render"
+        fi
+        
+        COMMIT=$(git commit-tree $TREE $PARENT -m "Auto-update keymap renders")
+        git update-ref refs/heads/keymap-render $COMMIT
+        
+        echo "Successfully updated local 'keymap-render' branch with new SVGs."
+        
+        # Background push the render branch (fails silently if no network or upstream missing)
+        (git push origin keymap-render:keymap-render >/dev/null 2>&1 &)
+    fi
+else
+    echo "Warning: draw-keymap.sh failed."
+    exit 1
+fi

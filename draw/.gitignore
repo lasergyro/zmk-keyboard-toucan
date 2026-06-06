@@ -4,3 +4,4 @@
 base.yaml
 keymap.yaml
 .DS_Store
+.cache_hash

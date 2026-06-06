@@ -141,7 +141,7 @@ ensure_nanopb_python_compat() {
       return 0
     fi
     log "Installing setuptools<81 for nanopb compatibility via Pixi"
-    pixi add --pypi 'setuptools<81'
+    pixi add --feature zephyr --pypi 'setuptools<81'
     return 0
   fi
 

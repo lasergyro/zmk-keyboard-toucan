@@ -29,8 +29,8 @@ def main():
         print("No dependencies found.")
         sys.exit(0)
         
-    print(f"Installing {len(deps)} Zephyr dependencies via pixi...")
-    cmd = ["pixi", "add", "--pypi"] + list(deps)
+    print(f"Installing {len(deps)} Zephyr dependencies into the 'zephyr' feature via pixi...")
+    cmd = ["pixi", "add", "--feature", "zephyr", "--pypi"] + list(deps)
     try:
         subprocess.run(cmd, check=True)
         print("Successfully installed Zephyr dependencies.")
