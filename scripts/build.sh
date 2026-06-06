@@ -69,7 +69,6 @@ ensure_homebrew_packages() {
   require_command brew
 
   local -a packages=(
-    python@3.12
     cmake
     ninja
     dtc

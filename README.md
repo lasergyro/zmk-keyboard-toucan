@@ -67,9 +67,9 @@ Keymap visualization config (annotation positions, colors, binding labels) in [d
 ### First time setup:
 
 #### Environment Setup
-This repository uses `pixi` to manage its Python environment and Zephyr dependencies.
+This repository uses `pixi` to manage its Python environment, tools, and Zephyr dependencies.
 1. Install [pixi](https://pixi.sh/latest/#installation).
-2. The environment will be automatically instantiated the first time you run a build command like `./debug.sh build` or when you run Python scripts via `pixi run python`.
+2. The environment will be automatically instantiated the first time you run any of the project scripts (like `./debug.sh`, `./release.sh`, or `./draw-keymap.sh`) or when you execute commands via `pixi run`.
 
 #### OS Setup Instructions (macOS)
 To get the best experience out of the Toucan trackpad on macOS, you should perform the following configuration:
