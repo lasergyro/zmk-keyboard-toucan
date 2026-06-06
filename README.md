@@ -162,7 +162,7 @@ Expected: 4 lines — left rpc, left log, right rpc, right log.
  4. Run Automated Tests
 ```bash
 pkill -9 -f "python.*debug|debug.sh|pyserial" || true
-python3 tests/test_pad.py
+pixi run python tests/test_pad.py
 ```
 
  5. Live Logs
@@ -247,7 +247,7 @@ The `config/west.yml` declares multiple upstream dependencies which currently tr
 
 **Dev logs**: for each specific issue keep a log/notes in a document in `plans/[date]-[topic].md`; keep it up to date as you resolve the issue.
 
-**Generic Patcher**: if normal edit tools are not the first choice, use the generic patching tool `scripts/patcher.py` to make targeted changes to files without needing to write custom Python scripts each time. You can invoke it like `python3 scripts/patcher.py <file> --search "<search_text>" --replace "<replace_text>"`.
+**Generic Patcher**: if normal edit tools are not the first choice, use the generic patching tool `scripts/patcher.py` to make targeted changes to files without needing to write custom Python scripts each time. You can invoke it like `pixi run python scripts/patcher.py <file> --search "<search_text>" --replace "<replace_text>"`.
 
 To prevent repetitive mistakes during future sessions, follow these rules when using tools:
 - **Avoid `cat | grep` or `grep` in bash**: Always prioritize the `grep_search` tool over running `grep` in a bash command. Do not use `cat` for viewing files or `grep` for searching files via the `run_command` tool.
