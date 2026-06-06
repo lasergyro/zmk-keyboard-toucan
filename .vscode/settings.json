@@ -2,6 +2,6 @@
     "python.analysis.extraPaths": [
         "./scripts"
     ],
-    "python.defaultInterpreterPath": "",
+    "python.defaultInterpreterPath": ".pixi/envs/default/bin/python",
     "python.pyrefly.configPath": "pyproject.toml"
 }

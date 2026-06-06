@@ -26,7 +26,7 @@ include = ["toucan_debug*"]
 include = ["toucan_debug", "tests"]
 extraPaths = [".", "tests"]
 venvPath = "."
-venv = ".venv"
+venv = ".pixi/envs/default"
 
 [tool.pixi.environments]
 default = { features = ["zephyr"], solve-group = "default" }
