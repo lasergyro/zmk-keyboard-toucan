@@ -18,3 +18,7 @@ toucan-debug = "toucan_debug.debug_tool:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["toucan_debug*"]
+
+[tool.pyright]
+include = ["toucan_debug", "tests"]
+extraPaths = ["."]
