@@ -46,6 +46,7 @@ def reset_touch_state(rpc: RPCSession) -> None:
 
 def run_pad_scenario(rpc_right: RPCSession, rpc_left: RPCSession, scenario: list[str]) -> list[str]:
     handle = rpc_right.session.handle
+    assert handle is not None
     
     # Queue scenario on right
     handle.write(b"qi\n")
@@ -83,6 +84,7 @@ def run_pad_scenario(rpc_right: RPCSession, rpc_left: RPCSession, scenario: list
     # To get the raw lines, we must read them directly from the serial port,
     # because rpc_left.request() drops non-OK/ERR lines!
     handle_left = rpc_left.session.handle
+    assert handle_left is not None
     handle_left.write(b"rend\n")
     handle_left.flush()
     

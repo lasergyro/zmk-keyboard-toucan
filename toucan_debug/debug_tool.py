@@ -347,6 +347,7 @@ def stop_log_stream(stream: LogStream) -> None:
         stream.serial_session.close()
         stream.serial_session = None
     if stream.file_handle is not None:
+        # pyrefly: ignore [missing-attribute]
         stream.file_handle.close()
         stream.file_handle = None
 
@@ -358,7 +359,9 @@ def emit_log_line(stream: LogStream, text: str) -> None:
         sys.stdout.write(text + "\n")
     sys.stdout.flush()
     if stream.file_handle is not None:
+        # pyrefly: ignore [missing-attribute]
         stream.file_handle.write(text + "\n")
+        # pyrefly: ignore [missing-attribute]
         stream.file_handle.flush()
 
 
