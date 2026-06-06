@@ -1,5 +1,7 @@
 # ZMK config for beekeeb Toucan Keyboard
 
+My personal config for my Toucan keyboard, also an experiment on getting AI to autonomously debug the keyboard (automatic flashing/rpc commands for debugging/input injection and output recording). Has per-device settings for unicode output, gestures and acceleration for the touchpad, and a Do Not Disturb key. Started from https://github.com/geeksville/zmk-urob-geeksville (thanks!). Render:
+
 ![Toucan Keymap](https://raw.githubusercontent.com/lasergyro/zmk-keyboard-toucan/keymap-render/keymap.svg?sanitize=true)
 
 [The beekeeb Toucan Keyboard](https://beekeeb.com/toucan-keyboard/) is a wireless split 42-key column‑stagger keyboard with a display and a trackpad, featuring an aggressive stagger on the pinky columns.
