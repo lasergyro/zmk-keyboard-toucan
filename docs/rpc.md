@@ -3,7 +3,7 @@
 
 All four touchpad RPC commands exchange data using the same **event stream format**, sent line by line over the USB serial RPC channel and terminated by a `.` line.
 
-Key code: [src/debug_rpc.c](src/debug_rpc.c).
+Key code: [src/debug_rpc.c](../src/debug_rpc.c).
 
 ### Stream Format
 

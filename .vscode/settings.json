@@ -2,6 +2,6 @@
     "python.analysis.extraPaths": [
         "./scripts"
     ],
-    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    "python.defaultInterpreterPath": "",
     "python.pyrefly.configPath": "pyproject.toml"
 }

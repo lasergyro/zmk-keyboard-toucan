@@ -98,7 +98,7 @@ All tests (e.g., `tests/test_pad.py`, `tests/test_simple_rpc.py`) should follow 
 - **Peripheral Injection for Touch**: The split transport batches the BLE/RPC messages, causing them to arrive at the peripheral almost simultaneously. This means that timing/waits should be managed on the left half, with some flushing of messages.
 - **Timestamp Drift**: Be aware that the `left_log` and `right_log` Zephyr uptime timestamps can drift or start with several seconds of offset.
 
-See [rpc.md](rpc.md) for debug RPC commands.
+See [rpc.md](docs/rpc.md) for debug RPC commands.
 
 ---
 
@@ -172,7 +172,7 @@ Logs saved to `debug-logs/<timestamp>-<side>-<port>.log`.
 
 ## Architecture
 
-Touchpad specific notes in [touchpad.md](touchpad.md).
+Touchpad specific notes in [touchpad.md](docs/touchpad.md).
 Generic Desktop HID usage page reference (e.g. System Do Not Disturb) is in [plans/generic_desktop.md](plans/generic_desktop.md).
 
 ### Build Composition
