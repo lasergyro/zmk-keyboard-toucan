@@ -1,6 +1,6 @@
 from .helpers import run_pad_scenario, CENTER_X, CENTER_Y, TraceLog, RPCSession
 
-def test_tap_click(rpc_right: RPCSession, rpc_left: RPCSession) -> None:
+def test_tap_click(rpc_right: RPCSession, rpc_left: RPCSession, params: dict) -> None:
     """Quick tap → left button press then release."""
     print("  Running test_tap_click...")
     scenario = []

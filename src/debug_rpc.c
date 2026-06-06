@@ -624,9 +624,10 @@ static void process_set_command(char *args) {
     char *saveptr = NULL;
     char *key = strtok_r(args, " ", &saveptr);
     char *val_text = strtok_r(NULL, " ", &saveptr);
+    char *flag = strtok_r(NULL, " ", &saveptr);
 
-    if (!key || !val_text || strtok_r(NULL, " ", &saveptr)) {
-        uart_write_str("ERR usage: set <param> <value>");
+    if (!key || !val_text) {
+        uart_write_str("ERR usage: set <param> <value> [nosave]");
         return;
     }
 
@@ -647,10 +648,12 @@ static void process_set_command(char *args) {
         return;
     }
 
-    char path[64];
-    snprintf(path, sizeof(path), "toucan/pad/%s", key);
-    int32_t v32 = (int32_t)val;
-    settings_save_one(path, &v32, sizeof(v32));
+    if (!flag || strcmp(flag, "nosave") != 0) {
+        char path[64];
+        snprintf(path, sizeof(path), "toucan/pad/%s", key);
+        int32_t v32 = (int32_t)val;
+        settings_save_one(path, &v32, sizeof(v32));
+    }
 
     char buf[80];
     snprintf(buf, sizeof(buf), "OK set %s=%d", key, (int)val);

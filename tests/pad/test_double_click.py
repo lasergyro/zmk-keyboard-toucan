@@ -1,6 +1,6 @@
 from .helpers import run_pad_scenario, CENTER_X, CENTER_Y, TraceLog, RPCSession
 
-def test_double_click(rpc_right: RPCSession, rpc_left: RPCSession) -> None:
+def test_double_click(rpc_right: RPCSession, rpc_left: RPCSession, params: dict) -> None:
     print("  Running test_double_click...")
     scenario = []
     
@@ -11,8 +11,8 @@ def test_double_click(rpc_right: RPCSession, rpc_left: RPCSession) -> None:
     scenario.append(f"A,10,{CENTER_X},{CENTER_Y},0")
     scenario.append(f"A,10,{CENTER_X},{CENTER_Y},0")
     
-    # Wait between taps (must be < drag_window_timeout_ms which is 150)
-    wait_time = 100
+    # Wait between taps (must be < drag_window_timeout_ms)
+    wait_time = max(10, params['drag_window_timeout_ms'] - 50)
     scenario.append(f"A,{wait_time},{CENTER_X},{CENTER_Y},0")
     
     # Second tap

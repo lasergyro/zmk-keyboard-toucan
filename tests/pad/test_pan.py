@@ -1,27 +1,6 @@
-#!/usr/bin/env python3
-import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).resolve().parent.parent / "scripts"))
-from debug_tool import RPCSession
+from .helpers import run_pad_scenario, CENTER_X, CENTER_Y, TraceLog, RPCSession
 
-CENTER_X = 1024
-CENTER_Y = 1024
-
-def main():
-    with RPCSession("left") as rpc:
-        print("Executing PAN modifier test...")
-        print("  Quarantining keyboard matrix...")
-        rpc.request("quarantine on")
-        
-        try:
-            test_pan_modifier(rpc)
-        finally:
-            rpc.request("quarantine off")
-            
-    print("PASS test_pan_modifier")
-    return 0
-
-def test_pan_modifier(rpc):
+def test_pan_modifier(rpc_right: RPCSession, rpc_left: RPCSession, params: dict) -> None:
     """Holding PAN modifier (key 39) converts drag to scroll."""
     print("  Running test_pan_modifier...")
     scenario = []
@@ -42,12 +21,7 @@ def test_pan_modifier(rpc):
     scenario.append(f"P,100,39,0")
     scenario.append(f"A,100,{CENTER_X},{current_y},0")
     
-    raw_trace = rpc.run_scenario(scenario)
-    
-    class TraceLog:
-        def __init__(self, trace):
-            self.events = trace
-            
+    raw_trace = run_pad_scenario(rpc_right, rpc_left, scenario)
     trace = TraceLog(raw_trace)
     
     scroll_events = [ev for ev in trace.events if ev.startswith("S,")]
@@ -55,15 +29,10 @@ def test_pan_modifier(rpc):
     
     if len(move_events) > 0:
         print(f"      Trace dump: {trace.events}")
-        print(f"\nFAILED: Unexpected move events found while PAN held: {move_events}")
-        sys.exit(1)
+        raise AssertionError(f"Unexpected move events found while PAN held: {move_events}")
         
     if len(scroll_events) == 0:
         print(f"      Trace dump: {trace.events}")
-        print("\nFAILED: No scroll events were generated.")
-        sys.exit(1)
+        raise AssertionError("No scroll events were generated.")
         
     print("  test_pan_modifier passed.")
-
-if __name__ == "__main__":
-    sys.exit(main())

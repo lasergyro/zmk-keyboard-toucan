@@ -471,6 +471,13 @@ class RPCSession:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.session.close()
 
+    def get_pad_param(self, key: str) -> int:
+        lines = self.request(f"get {key}")
+        for line in lines:
+            if line.startswith(f"OK {key}="):
+                return int(line.split("=")[1])
+        raise RuntimeError(f"Failed to get {key}")
+
     def request(self, command: str) -> list[str]:
         """Send a command and return all response lines."""
         return self.session.request_lines(command)

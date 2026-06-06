@@ -1,6 +1,6 @@
 from .helpers import run_pad_scenario, CENTER_X, CENTER_Y, TraceLog, RPCSession
 
-def test_cursor_movement(rpc_right: RPCSession, rpc_left: RPCSession) -> None:
+def test_cursor_movement(rpc_right: RPCSession, rpc_left: RPCSession, params: dict) -> None:
     """Inner-pad drag → non-zero cursor deltas."""
     print("  Running test_cursor_movement...")
     scenario = []

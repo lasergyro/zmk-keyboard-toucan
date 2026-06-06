@@ -1,6 +1,6 @@
 from .helpers import run_pad_scenario, rim_point, TraceLog, RPCSession
 
-def test_circular_scroll(rpc_right: RPCSession, rpc_left: RPCSession) -> None:
+def test_circular_scroll(rpc_right: RPCSession, rpc_left: RPCSession, params: dict) -> None:
     """Rim touch + 180° clockwise arc → scroll events, no cursor movement."""
     print("  Running test_circular_scroll...")
     scenario = []
