@@ -4,6 +4,7 @@
 .ccache/
 .sccache/
 .zmk-workspace/
+TODOS.md
 build/
 artifacts/
 debug-logs/
