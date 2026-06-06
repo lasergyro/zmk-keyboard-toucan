@@ -1,6 +1,6 @@
 .zmk-venv/
 .keymap-drawer-venv/
-.debug-venv/
+.venv/
 .ccache/
 .sccache/
 .zmk-workspace/
@@ -14,4 +14,4 @@ __pycache__/
 .pytest_cache/
 tests_c/listen_all
 tests_c/listen_dnd
-tests_c/*.dSYM
+tests_c/*.dSYM.vscode/

@@ -197,7 +197,7 @@ COMMAND=${1:-build}
 COMMAND_ARGS=("${@:2}")
 
 REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-DEBUG_VENV_DIR="${DEBUG_VENV_DIR:-$REPO_ROOT/.debug-venv}"
+DEBUG_VENV_DIR="${DEBUG_VENV_DIR:-$REPO_ROOT/.venv}"
 DEBUG_PYTHON="$DEBUG_VENV_DIR/bin/python"
 CONFIG_SOURCE_DIR="$REPO_ROOT/config"
 WORKSPACE_DIR="${WORKSPACE_DIR:-$REPO_ROOT/.zmk-workspace}"
