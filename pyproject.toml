@@ -82,6 +82,11 @@ platforms = ["osx-arm64"]
 
 [tool.pixi.pypi-dependencies]
 toucan-debug = { path = ".", editable = true }
+# nanopb's bundled protoc still does `import pkg_resources`, which setuptools
+# removed in v81. Zephyr's requirements*.txt doesn't constrain setuptools, so
+# pixi otherwise pulls the latest (82+) and the nanopb codegen step fails with
+# ModuleNotFoundError: No module named 'pkg_resources'. Pin below the removal.
+setuptools = "<81"
 
 [tool.pixi.tasks]
 install-zephyr-deps = "python scripts/install_zephyr_deps.py"

@@ -211,7 +211,7 @@ ensure_workspace
 require_command "$WEST_BIN"
 sync_config_dir
 
-install-zephyr-deps
+pixi run install-zephyr-deps
 
 export ZEPHYR_TOOLCHAIN_VARIANT=gnuarmemb
 GNUARMEMB_TOOLCHAIN_PATH="$(determine_toolchain_path)" || \
