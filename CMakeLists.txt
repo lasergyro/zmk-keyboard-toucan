@@ -12,6 +12,8 @@ target_sources_ifdef(CONFIG_TOUCAN_DEBUG_RPC app PRIVATE
   src/behavior_debug_inject.c)
 target_sources_ifdef(CONFIG_TOUCAN_DEBUG_QUARANTINE app PRIVATE
   src/debug_quarantine.c)
+target_sources_ifdef(CONFIG_TOUCAN_SLEEP_LOG app PRIVATE
+  src/toucan_sleep_log.c)
 if(CONFIG_TOUCAN_DEBUG_QUARANTINE)
   zephyr_link_libraries(
     -Wl,--wrap=zmk_endpoints_send_report

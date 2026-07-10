@@ -8,6 +8,15 @@ config TOUCAN_DEBUG_QUARANTINE
     bool "Enable Toucan debug quarantine mode"
     default y if TOUCAN_DEBUG_RPC
 
+config TOUCAN_SLEEP_LOG
+    bool "Record a persistent rotating log of active/idle/charging durations"
+    default y
+    depends on SETTINGS
+    help
+      Per-half rotating log of activity-state (active/idle) and charging
+      durations, stored as a page-ring in the NVS settings partition so it
+      survives deep sleep. Read it back over the debug RPC `sleeplog` command.
+
 DT_COMPAT_ZMK_BEHAVIOR_TOUCAN_OUTPUT_MODE := zmk,behavior-toucan-output-mode
 
 config ZMK_BEHAVIOR_TOUCAN_OUTPUT_MODE
