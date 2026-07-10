@@ -246,6 +246,24 @@ ZMK_LISTENER(nice_view_gem_display, display_activity_event_handler);
 ZMK_SUBSCRIPTION(nice_view_gem_display, zmk_activity_state_changed);
 
 /**
+ * Profile blink animation
+ *
+ * Connection state changes are event-driven, but the "connecting" slot needs a
+ * steady blink with no backing event. This LVGL timer runs on the display
+ * thread (safe for canvas drawing) and only redraws while actually connecting.
+ **/
+
+#define PROFILE_BLINK_PERIOD_MS 500
+
+static void profile_blink_timer_cb(lv_timer_t *timer) {
+    if (is_sleep_screen_active() || !profile_status_advertising()) {
+        return;
+    }
+    profile_status_blink_toggle();
+    force_redraw_all_widgets();
+}
+
+/**
  * Initialization
  **/
 
@@ -262,6 +280,12 @@ int zmk_widget_screen_init(struct zmk_widget_screen *widget, lv_obj_t *parent) {
     widget_battery_peripheral_status_init();
     widget_layer_status_init();
     widget_output_status_init();
+
+    static bool blink_timer_started = false;
+    if (!blink_timer_started) {
+        lv_timer_create(profile_blink_timer_cb, PROFILE_BLINK_PERIOD_MS, NULL);
+        blink_timer_started = true;
+    }
 
     return 0;
 }
