@@ -17,11 +17,14 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/settings/settings.h>
+#include <zephyr/fs/nvs.h>
 #include <zephyr/sys/reboot.h>
 
 #include <toucan/pinnacle_params.h>
 
 #include <dt-bindings/zmk/reset.h>
+#include <zmk/activity.h>
+#include <zmk/events/activity_state_changed.h>
 #include <zmk/events/position_state_changed.h>
 #include <zmk/split/peripheral.h>
 #include <zmk/hid.h>
@@ -31,6 +34,9 @@
 #endif
 
 #include <toucan/debug_quarantine.h>
+#if IS_ENABLED(CONFIG_TOUCAN_SLEEP_LOG)
+#include <toucan/sleep_log.h>
+#endif
 #include <zmk/keymap.h>
 #include <zmk/endpoints.h>
 #include <zmk/ble.h>
@@ -374,6 +380,21 @@ static void uart_cb(const struct device *dev, void *user_data) {
 
 static void reset_after_reply(void) {
     uart_write_str("OK reset");
+    k_sleep(K_MSEC(50));
+    sys_reboot(SYS_REBOOT_COLD);
+}
+
+/* Emulate a deep-sleep/wake cycle for testing. Fires the ZMK deep-sleep-entry
+ * notification so subscribers run their flush/suspend hooks (the sleep log
+ * flushes its current page to NVS here), then cold-reboots to emulate wake.
+ * A true System OFF can't self-wake on nRF52, so we reboot instead — which also
+ * exercises the log's boot-resume-from-NVS path, proving persistence. */
+static void sleep_after_reply(void) {
+    LOG_WRN("Simulated deep-sleep entry requested over USB debug RPC");
+    uart_write_str("OK sleep");
+    k_sleep(K_MSEC(50));
+    raise_zmk_activity_state_changed(
+        (struct zmk_activity_state_changed){.state = ZMK_ACTIVITY_SLEEP});
     k_sleep(K_MSEC(50));
     sys_reboot(SYS_REBOOT_COLD);
 }
@@ -925,6 +946,88 @@ void toucan_debug_rpc_capture_mouse_report(void) {
 }
 
 
+/* Report NVS settings-partition usage. Pulls the live nvs_fs the settings
+ * subsystem mounted (CONFIG_SETTINGS_NVS) and asks NVS how much room is left
+ * for new data. nvs_calc_free_space() already reserves one sector for garbage
+ * collection, so "total" here is the usable ceiling, not the raw 32 KB. */
+static void process_nvsfree_command(void) {
+    void *storage = NULL;
+    int rc = settings_storage_get(&storage);
+    if (rc != 0 || storage == NULL) {
+        uart_write_str("ERR nvsfree: no settings storage");
+        return;
+    }
+
+    struct nvs_fs *fs = (struct nvs_fs *)storage;
+    ssize_t freeb = nvs_calc_free_space(fs);
+    if (freeb < 0) {
+        char buf[48];
+        snprintf(buf, sizeof(buf), "ERR nvsfree: calc failed %d", (int)freeb);
+        uart_write_str(buf);
+        return;
+    }
+
+    /* Usable total = (sector_count - 1) sectors, each minus one ATE. */
+    size_t ate_size = 8; /* sizeof(struct nvs_ate) on internal flash */
+    size_t total = (size_t)(fs->sector_count - 1) * (fs->sector_size - ate_size);
+    size_t used = (total > (size_t)freeb) ? total - (size_t)freeb : 0;
+
+    char buf[128];
+    snprintf(buf, sizeof(buf),
+             "OK nvsfree free=%d used=%d total=%d sectors=%u size=%u",
+             (int)freeb, (int)used, (int)total, (unsigned)fs->sector_count,
+             (unsigned)fs->sector_size);
+    uart_write_str(buf);
+}
+
+#if IS_ENABLED(CONFIG_TOUCAN_SLEEP_LOG)
+/* Single-line RPC, one page per request (the RPC transport returns one OK line):
+ *   `sleeplog`      -> "OK sleeplog slots=<N> cur=<s>"   (iterate slots 0..N-1)
+ *   `sleeplog <i>`  -> "OK sleeplog slot=<i> seq=<q> n=<c> <hex>"  or  "... empty"
+ * Each record is 2 little-endian bytes; the host sorts pages by seq, records by
+ * index, then decodes [15:3]=dur_s [2]=charging [1:0]=state. */
+static void process_sleeplog_command(char *args) {
+    if (!args || *args == '\0') {
+        char buf[48];
+        snprintf(buf, sizeof(buf), "OK sleeplog slots=%u cur=%u", TOUCAN_SLEEP_LOG_NUM_PAGES,
+                 toucan_sleep_log_cur_slot());
+        uart_write_str(buf);
+        return;
+    }
+
+    if (strcmp(args, "flush") == 0) {
+        int rc = toucan_sleep_log_flush();
+        char buf[48];
+        snprintf(buf, sizeof(buf), rc == 0 ? "OK sleeplog flushed" : "ERR sleeplog flush %d", rc);
+        uart_write_str(buf);
+        return;
+    }
+
+    long slot = strtol(args, NULL, 10);
+    struct toucan_sleep_log_page page;
+    if (slot < 0 || slot >= TOUCAN_SLEEP_LOG_NUM_PAGES ||
+        !toucan_sleep_log_get_page((uint8_t)slot, &page)) {
+        char buf[48];
+        snprintf(buf, sizeof(buf), "OK sleeplog slot=%ld empty", slot);
+        uart_write_str(buf);
+        return;
+    }
+
+    char buf[256];
+    int n = snprintf(buf, sizeof(buf), "OK sleeplog slot=%ld seq=%u n=%u ", slot, page.seq,
+                     page.count);
+    static const char hex[] = "0123456789abcdef";
+    const uint8_t *bytes = (const uint8_t *)page.rec;
+    size_t nbytes = (size_t)page.count * sizeof(page.rec[0]);
+    for (size_t i = 0; i < nbytes && n < (int)sizeof(buf) - 2; i++) {
+        buf[n++] = hex[bytes[i] >> 4];
+        buf[n++] = hex[bytes[i] & 0xf];
+    }
+    buf[n] = '\0';
+    uart_write_str(buf);
+}
+#endif /* CONFIG_TOUCAN_SLEEP_LOG */
+
 static void process_command(const struct toucan_debug_rpc_cmd *cmd) {
 
     LOG_DBG("Debug RPC command: %s", cmd->text);
@@ -1026,14 +1129,19 @@ static void process_command(const struct toucan_debug_rpc_cmd *cmd) {
     if (strcmp(verb, "help") == 0) {
 
         uart_write_str(
-            "OK commands: ping identity reset bootloader quarantine layers key tap touch abs move"
-            " get set out help");
+            "OK commands: ping identity reset sleep bootloader quarantine layers key tap touch abs"
+            " move get set out nvsfree sleeplog help");
         return;
     }
 
     if (strcmp(verb, "reset") == 0) {
         LOG_WRN("Reset requested over USB debug RPC");
         reset_after_reply();
+        return;
+    }
+
+    if (strcmp(verb, "sleep") == 0) {
+        sleep_after_reply();
         return;
     }
 
@@ -1047,6 +1155,18 @@ static void process_command(const struct toucan_debug_rpc_cmd *cmd) {
         process_layers_command();
         return;
     }
+
+    if (strcmp(verb, "nvsfree") == 0) {
+        process_nvsfree_command();
+        return;
+    }
+
+#if IS_ENABLED(CONFIG_TOUCAN_SLEEP_LOG)
+    if (strcmp(verb, "sleeplog") == 0) {
+        process_sleeplog_command(args);
+        return;
+    }
+#endif
 
     if (strcmp(verb, "key") == 0) {
         process_key_command(args);

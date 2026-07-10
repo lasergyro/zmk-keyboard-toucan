@@ -26,6 +26,7 @@ Commands:
   logs      Open one or both log streams and capture timestamped files.
   rpc       Send a debug RPC command over the USB CDC ACM RPC port.
   inject    Convenience wrapper for debug-only input injection commands.
+  sleeplog  Decode the persistent activity/charging log [left|right].
   help      Show this help text.
 
 Examples:

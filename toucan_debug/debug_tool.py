@@ -454,11 +454,36 @@ def usage() -> int:
                 "  logs      Open one or both log streams and capture timestamped files.",
                 "  rpc       Send a debug RPC command over the USB CDC ACM RPC port.",
                 "  inject    Convenience wrapper for debug-only input injection commands.",
+                "  sleeplog  Decode the persistent activity/charging log [left|right].",
                 "  help      Show this help text.",
             ]
         )
     )
     return 0
+
+
+SLEEP_LOG_STATES = ("ACTIVE", "IDLE", "SLEEP")
+
+
+@dataclass
+class SleepLogRecord:
+    """One entry from the firmware activity/charging log.
+
+    `state` is one of SLEEP_LOG_STATES; SLEEP entries (dur_s == 0) are deep-sleep
+    boundary markers. `dur_s` is the seconds spent in `state` while `charging`.
+    Long spans are split into <=1 h pieces by the firmware checkpoint, so the
+    total time in a state is the sum of consecutive same-(state, charging) rows.
+    """
+
+    seq: int
+    state: str
+    charging: bool
+    dur_s: int
+
+
+def _kv(line: str) -> dict[str, str]:
+    """Parse the `key=value` tokens of an RPC response line."""
+    return dict(t.split("=", 1) for t in line.split() if "=" in t)
 
 
 class RPCSession:
@@ -484,6 +509,36 @@ class RPCSession:
     def request(self, command: str) -> list[str]:
         """Send a command and return all response lines."""
         return self.session.request_lines(command)
+
+    def read_sleep_log(self) -> list[SleepLogRecord]:
+        """Read and decode the persistent activity/charging log.
+
+        Pages are fetched one per request (the RPC transport returns a single
+        line) and reassembled in chronological order by page sequence number.
+        """
+        head = _kv(self.request("sleeplog")[-1])
+        slots = int(head.get("slots", 0))
+        pages: list[tuple[int, bytes]] = []
+        for i in range(slots):
+            line = self.request(f"sleeplog {i}")[-1]
+            fields = _kv(line)
+            if "seq" not in fields or int(fields.get("n", 0)) == 0:
+                continue
+            toks = line.split()
+            blob = toks[-1] if toks and "=" not in toks[-1] else ""
+            try:
+                pages.append((int(fields["seq"]), bytes.fromhex(blob)))
+            except ValueError:
+                continue
+        pages.sort(key=lambda p: p[0])
+        out: list[SleepLogRecord] = []
+        for seq, raw in pages:
+            for j in range(0, len(raw) - 1, 2):
+                r = raw[j] | (raw[j + 1] << 8)
+                out.append(
+                    SleepLogRecord(seq, SLEEP_LOG_STATES[r & 0x3], bool((r >> 2) & 0x1), r >> 3)
+                )
+        return out
 
     def run_scenario(self, scenario: list[str]) -> list[str]:
         """Queue and execute a scenario via qi/qo."""
@@ -530,6 +585,71 @@ class RPCSession:
         return output
 
 
+def format_duration(seconds: int) -> str:
+    d, rem = divmod(int(seconds), 86400)
+    h, rem = divmod(rem, 3600)
+    m, s = divmod(rem, 60)
+    parts = []
+    if d:
+        parts.append(f"{d}d")
+    if h or d:
+        parts.append(f"{h}h")
+    if m or h or d:
+        parts.append(f"{m}m")
+    parts.append(f"{s}s")
+    return " ".join(parts)
+
+
+def show_sleep_log(args: list[str]) -> int:
+    """Print the decoded activity/charging log for one or both halves."""
+    selector = None
+    if args and (args[0] in {"left", "right"} or args[0].startswith("/dev/")):
+        selector = args[0]
+    sides = [selector] if selector else ["left", "right"]
+
+    for side in sides:
+        try:
+            with RPCSession(side) as session:
+                records = session.read_sleep_log()
+        except Exception as exc:  # noqa: BLE001 - surface any device error per side
+            log(f"{side}: failed to read sleep log: {exc}")
+            continue
+
+        print(f"=== {side} ===")
+        if not records:
+            print("  (no records yet)")
+            continue
+
+        totals: Dict[tuple[str, bool], int] = {}
+        # Merge consecutive same-(state, charging) rows for a readable timeline.
+        merged: list[list] = []
+        for r in records:
+            if r.state == "SLEEP":
+                merged.append(["SLEEP", False, 0])
+                continue
+            key = (r.state, r.charging)
+            totals[key] = totals.get(key, 0) + r.dur_s
+            if merged and merged[-1][0] == r.state and merged[-1][1] == r.charging:
+                merged[-1][2] += r.dur_s
+            else:
+                merged.append([r.state, r.charging, r.dur_s])
+
+        for state, charging, dur in merged:
+            if state == "SLEEP":
+                print("  -- deep sleep --")
+            else:
+                chg = "charging" if charging else "battery "
+                print(f"  {state:6} {chg} {format_duration(dur)}")
+
+        print("  totals:")
+        for (state, charging), dur in sorted(totals.items()):
+            chg = "charging" if charging else "battery"
+            print(f"    {state:6} {chg:8} {format_duration(dur)}")
+        sleeps = sum(1 for r in records if r.state == "SLEEP")
+        print(f"    deep-sleep entries: {sleeps}")
+    return 0
+
+
 def main(argv: Iterable[str] | None = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
@@ -545,6 +665,8 @@ def main(argv: Iterable[str] | None = None) -> int:
         return open_logs(command_args)
     if command in {"rpc", "inject"}:
         return send_rpc(command_args)
+    if command == "sleeplog":
+        return show_sleep_log(command_args)
 
     return die(f"Unknown command: {command}")
 
