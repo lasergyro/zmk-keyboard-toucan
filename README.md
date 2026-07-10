@@ -30,6 +30,22 @@ The keyboard enters Deep Sleep automatically after 60 minutes of inactivity to c
 - Touching the touchpad will **not** wake the keyboard (the touchpad is suspended and not configured as a wakeup source).
 - Because the halves sleep independently, if the entire keyboard has gone to sleep, you will need to press a key on **both** the left and right halves to fully wake the system.
 
+**Display: Bluetooth Profile Status**
+The left half's display shows a row of five boxes, one per BLE profile slot. Each box splits into two independent halves — **left = pairing, right = connection**:
+
+| Box | Left half (pairing) | Right half (connection) |
+|-----|---------------------|-------------------------|
+| Empty | not paired | disconnected |
+| Left half blinking | pairing mode (advertising for a new device) | — |
+| Left half solid | paired | — |
+| Right half blinking | — | reconnecting to its host |
+| Right half solid | — | connected |
+| Full box | paired | connected |
+
+The currently **selected** slot is **underlined**. Note that more than one slot can show *connected* at once — BLE keeps prior host links alive; only the underlined (selected) slot receives your keystrokes.
+
+To **pair a new device**: enter the SYS leader namespace with the `LB1 + LB0` combo (the two innermost bottom-row keys on the left half), then press the slot letter (`A`/`S`/`D`/`F`/`G` = slots 1–5). Selecting an empty slot enters pairing mode (left half blinks); pair from the host's Bluetooth menu. To re-pair an occupied slot, clear it first with SYS → `Q` (`BT_CLR`). See [config/leader.dtsi](config/leader.dtsi).
+
 
 ### Keymap Structure
 
