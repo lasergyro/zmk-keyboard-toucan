@@ -1,0 +1,839 @@
+<svg width="844" height="693" viewBox="0 0 844 693" class="keymap" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<defs>/* start glyphs */
+<svg id="mdi:apple">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-apple" viewBox="0 0 24 24"><path d="M18.71,19.5C17.88,20.74 17,21.95 15.66,21.97C14.32,22 13.89,21.18 12.37,21.18C10.84,21.18 10.37,21.95 9.1,22C7.79,22.05 6.8,20.68 5.96,19.47C4.25,17 2.94,12.45 4.7,9.39C5.57,7.87 7.13,6.91 8.82,6.88C10.1,6.86 11.32,7.75 12.11,7.75C12.89,7.75 14.37,6.68 15.92,6.84C16.57,6.87 18.39,7.1 19.56,8.82C19.47,8.88 17.39,10.1 17.41,12.63C17.44,15.65 20.06,16.66 20.09,16.67C20.06,16.74 19.67,18.11 18.71,19.5M13,3.5C13.73,2.67 14.94,2.04 15.94,2C16.07,3.17 15.6,4.35 14.9,5.19C14.21,6.04 13.07,6.7 11.95,6.61C11.8,5.46 12.36,4.26 13,3.5Z" /></svg>
+</svg>
+<svg id="mdi:apple-ios">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-apple-ios" viewBox="0 0 24 24"><path d="M2.09 16.8H3.75V9.76H2.09M2.92 8.84C3.44 8.84 3.84 8.44 3.84 7.94C3.84 7.44 3.44 7.04 2.92 7.04C2.4 7.04 2 7.44 2 7.94C2 8.44 2.4 8.84 2.92 8.84M9.25 7.06C6.46 7.06 4.7 8.96 4.7 12C4.7 15.06 6.46 16.96 9.25 16.96C12.04 16.96 13.8 15.06 13.8 12C13.8 8.96 12.04 7.06 9.25 7.06M9.25 8.5C10.96 8.5 12.05 9.87 12.05 12C12.05 14.15 10.96 15.5 9.25 15.5C7.54 15.5 6.46 14.15 6.46 12C6.46 9.87 7.54 8.5 9.25 8.5M14.5 14.11C14.57 15.87 16 16.96 18.22 16.96C20.54 16.96 22 15.82 22 14C22 12.57 21.18 11.77 19.23 11.32L18.13 11.07C16.95 10.79 16.47 10.42 16.47 9.78C16.47 9 17.2 8.45 18.28 8.45C19.38 8.45 20.13 9 20.21 9.89H21.84C21.8 8.2 20.41 7.06 18.29 7.06C16.21 7.06 14.73 8.21 14.73 9.91C14.73 11.28 15.56 12.13 17.33 12.53L18.57 12.82C19.78 13.11 20.27 13.5 20.27 14.2C20.27 15 19.47 15.57 18.31 15.57C17.15 15.57 16.26 15 16.16 14.11H14.5Z" /></svg>
+</svg>
+<svg id="mdi:apple-keyboard-command">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-apple-keyboard-command" viewBox="0 0 24 24"><path d="M6,2A4,4 0 0,1 10,6V8H14V6A4,4 0 0,1 18,2A4,4 0 0,1 22,6A4,4 0 0,1 18,10H16V14H18A4,4 0 0,1 22,18A4,4 0 0,1 18,22A4,4 0 0,1 14,18V16H10V18A4,4 0 0,1 6,22A4,4 0 0,1 2,18A4,4 0 0,1 6,14H8V10H6A4,4 0 0,1 2,6A4,4 0 0,1 6,2M16,18A2,2 0 0,0 18,20A2,2 0 0,0 20,18A2,2 0 0,0 18,16H16V18M14,10H10V14H14V10M6,16A2,2 0 0,0 4,18A2,2 0 0,0 6,20A2,2 0 0,0 8,18V16H6M8,6A2,2 0 0,0 6,4A2,2 0 0,0 4,6A2,2 0 0,0 6,8H8V6M18,8A2,2 0 0,0 20,6A2,2 0 0,0 18,4A2,2 0 0,0 16,6V8H18Z" /></svg>
+</svg>
+<svg id="mdi:apple-keyboard-control">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-apple-keyboard-control" viewBox="0 0 24 24"><path d="M19.78,11.78L18.36,13.19L12,6.83L5.64,13.19L4.22,11.78L12,4L19.78,11.78Z" /></svg>
+</svg>
+<svg id="mdi:apple-keyboard-option">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-apple-keyboard-option" viewBox="0 0 24 24"><path d="M3,4H9.11L16.15,18H21V20H14.88L7.84,6H3V4M14,4H21V6H14V4Z" /></svg>
+</svg>
+<svg id="mdi:apple-keyboard-shift">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-apple-keyboard-shift" viewBox="0 0 24 24"><path d="M15,18V12H17.17L12,6.83L6.83,12H9V18H15M12,4L22,14H17V20H7V14H2L12,4Z" /></svg>
+</svg>
+<svg id="mdi:backspace-outline">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-backspace-outline" viewBox="0 0 24 24"><path d="M19,15.59L17.59,17L14,13.41L10.41,17L9,15.59L12.59,12L9,8.41L10.41,7L14,10.59L17.59,7L19,8.41L15.41,12L19,15.59M22,3A2,2 0 0,1 24,5V19A2,2 0 0,1 22,21H7C6.31,21 5.77,20.64 5.41,20.11L0,12L5.41,3.88C5.77,3.35 6.31,3 7,3H22M22,5H7L2.28,12L7,19H22V5Z" /></svg>
+</svg>
+<svg id="mdi:bluetooth">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-bluetooth" viewBox="0 0 24 24"><path d="M14.88,16.29L13,18.17V14.41M13,5.83L14.88,7.71L13,9.58M17.71,7.71L12,2H11V9.58L6.41,5L5,6.41L10.59,12L5,17.58L6.41,19L11,14.41V22H12L17.71,16.29L13.41,12L17.71,7.71Z" /></svg>
+</svg>
+<svg id="mdi:bluetooth-connect">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-bluetooth-connect" viewBox="0 0 24 24"><path d="M19,10L17,12L19,14L21,12M14.88,16.29L13,18.17V14.41M13,5.83L14.88,7.71L13,9.58M17.71,7.71L12,2H11V9.58L6.41,5L5,6.41L10.59,12L5,17.58L6.41,19L11,14.41V22H12L17.71,16.29L13.41,12M7,12L5,10L3,12L5,14L7,12Z" /></svg>
+</svg>
+<svg id="mdi:bluetooth-off">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-bluetooth-off" viewBox="0 0 24 24"><path d="M13,5.83L14.88,7.71L13.28,9.31L14.69,10.72L17.71,7.7L12,2H11V7.03L13,9.03M5.41,4L4,5.41L10.59,12L5,17.59L6.41,19L11,14.41V22H12L16.29,17.71L18.59,20L20,18.59M13,18.17V14.41L14.88,16.29" /></svg>
+</svg>
+<svg id="mdi:brightness-5">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-brightness-5" viewBox="0 0 24 24"><path d="M12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18M20,15.31L23.31,12L20,8.69V4H15.31L12,0.69L8.69,4H4V8.69L0.69,12L4,15.31V20H8.69L12,23.31L15.31,20H20V15.31Z" /></svg>
+</svg>
+<svg id="mdi:brightness-7">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-brightness-7" viewBox="0 0 24 24"><path d="M12,8A4,4 0 0,0 8,12A4,4 0 0,0 12,16A4,4 0 0,0 16,12A4,4 0 0,0 12,8M12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18M20,8.69V4H15.31L12,0.69L8.69,4H4V8.69L0.69,12L4,15.31V20H8.69L12,23.31L15.31,20H20V15.31L23.31,12L20,8.69Z" /></svg>
+</svg>
+<svg id="mdi:brush">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-brush" viewBox="0 0 24 24"><path d="M20.71,4.63L19.37,3.29C19,2.9 18.35,2.9 17.96,3.29L9,12.25L11.75,15L20.71,6.04C21.1,5.65 21.1,5 20.71,4.63M7,14A3,3 0 0,0 4,17C4,18.31 2.84,19 2,19C2.92,20.22 4.5,21 6,21A4,4 0 0,0 10,17A3,3 0 0,0 7,14Z" /></svg>
+</svg>
+<svg id="mdi:cog">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-cog" viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" /></svg>
+</svg>
+<svg id="mdi:content-copy">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-content-copy" viewBox="0 0 24 24"><path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" /></svg>
+</svg>
+<svg id="mdi:content-cut">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-content-cut" viewBox="0 0 24 24"><path d="M19,3L13,9L15,11L22,4V3M12,12.5A0.5,0.5 0 0,1 11.5,12A0.5,0.5 0 0,1 12,11.5A0.5,0.5 0 0,1 12.5,12A0.5,0.5 0 0,1 12,12.5M6,20A2,2 0 0,1 4,18C4,16.89 4.9,16 6,16A2,2 0 0,1 8,18C8,19.11 7.1,20 6,20M6,8A2,2 0 0,1 4,6C4,4.89 4.9,4 6,4A2,2 0 0,1 8,6C8,7.11 7.1,8 6,8M9.64,7.64C9.87,7.14 10,6.59 10,6A4,4 0 0,0 6,2A4,4 0 0,0 2,6A4,4 0 0,0 6,10C6.59,10 7.14,9.87 7.64,9.64L10,12L7.64,14.36C7.14,14.13 6.59,14 6,14A4,4 0 0,0 2,18A4,4 0 0,0 6,22A4,4 0 0,0 10,18C10,17.41 9.87,16.86 9.64,16.36L12,14L19,21H22V20L9.64,7.64Z" /></svg>
+</svg>
+<svg id="mdi:content-paste">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-content-paste" viewBox="0 0 24 24"><path d="M19,20H5V4H7V7H17V4H19M12,2A1,1 0 0,1 13,3A1,1 0 0,1 12,4A1,1 0 0,1 11,3A1,1 0 0,1 12,2M19,2H14.82C14.4,0.84 13.3,0 12,0C10.7,0 9.6,0.84 9.18,2H5A2,2 0 0,0 3,4V20A2,2 0 0,0 5,22H19A2,2 0 0,0 21,20V4A2,2 0 0,0 19,2Z" /></svg>
+</svg>
+<svg id="mdi:flash">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-flash" viewBox="0 0 24 24"><path d="M7,2V13H10V22L17,10H13L17,2H7Z" /></svg>
+</svg>
+<svg id="mdi:keyboard-return">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-keyboard-return" viewBox="0 0 24 24"><path d="M19,7V11H5.83L9.41,7.41L8,6L2,12L8,18L9.41,16.58L5.83,13H21V7H19Z" /></svg>
+</svg>
+<svg id="mdi:keyboard-space">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-keyboard-space" viewBox="0 0 24 24"><path d="M3 15H5V19H19V15H21V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V15Z" /></svg>
+</svg>
+<svg id="mdi:keyboard-tab">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-keyboard-tab" viewBox="0 0 24 24"><path d="M20,18H22V6H20M11.59,7.41L15.17,11H1V13H15.17L11.59,16.58L13,18L19,12L13,6L11.59,7.41Z" /></svg>
+</svg>
+<svg id="mdi:linux">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-linux" viewBox="0 0 24 24"><path d="M14.62,8.35C14.2,8.63 12.87,9.39 12.67,9.54C12.28,9.85 11.92,9.83 11.53,9.53C11.33,9.37 10,8.61 9.58,8.34C9.1,8.03 9.13,7.64 9.66,7.42C11.3,6.73 12.94,6.78 14.57,7.45C15.06,7.66 15.08,8.05 14.62,8.35M21.84,15.63C20.91,13.54 19.64,11.64 18,9.97C17.47,9.42 17.14,8.8 16.94,8.09C16.84,7.76 16.77,7.42 16.7,7.08C16.5,6.2 16.41,5.3 16,4.47C15.27,2.89 14,2.07 12.16,2C10.35,2.05 9,2.81 8.21,4.4C8,4.83 7.85,5.28 7.75,5.74C7.58,6.5 7.43,7.29 7.25,8.06C7.1,8.71 6.8,9.27 6.29,9.77C4.68,11.34 3.39,13.14 2.41,15.12C2.27,15.41 2.13,15.7 2.04,16C1.85,16.66 2.33,17.12 3.03,16.96C3.47,16.87 3.91,16.78 4.33,16.65C4.74,16.5 4.9,16.6 5,17C5.65,19.15 7.07,20.66 9.24,21.5C13.36,23.06 18.17,20.84 19.21,16.92C19.28,16.65 19.38,16.55 19.68,16.65C20.14,16.79 20.61,16.89 21.08,17C21.57,17.09 21.93,16.84 22,16.36C22.03,16.1 21.94,15.87 21.84,15.63" /></svg>
+</svg>
+<svg id="mdi:magnify">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-magnify" viewBox="0 0 24 24"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" /></svg>
+</svg>
+<svg id="mdi:microphone">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-microphone" viewBox="0 0 24 24"><path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z" /></svg>
+</svg>
+<svg id="mdi:moon-waning-crescent">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-moon-waning-crescent" viewBox="0 0 24 24"><path d="M2 12A10 10 0 0 0 15 21.54A10 10 0 0 1 15 2.46A10 10 0 0 0 2 12Z" /></svg>
+</svg>
+<svg id="mdi:play-pause">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-play-pause" viewBox="0 0 24 24"><path d="M3,5V19L11,12M13,19H16V5H13M18,5V19H21V5" /></svg>
+</svg>
+<svg id="mdi:restart">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-restart" viewBox="0 0 24 24"><path d="M12,4C14.1,4 16.1,4.8 17.6,6.3C20.7,9.4 20.7,14.5 17.6,17.6C15.8,19.5 13.3,20.2 10.9,19.9L11.4,17.9C13.1,18.1 14.9,17.5 16.2,16.2C18.5,13.9 18.5,10.1 16.2,7.7C15.1,6.6 13.5,6 12,6V10.6L7,5.6L12,0.6V4M6.3,17.6C3.7,15 3.3,11 5.1,7.9L6.6,9.4C5.5,11.6 5.9,14.4 7.8,16.2C8.3,16.7 8.9,17.1 9.6,17.4L9,19.4C8,19 7.1,18.4 6.3,17.6Z" /></svg>
+</svg>
+<svg id="mdi:skip-next">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-skip-next" viewBox="0 0 24 24"><path d="M16,18H18V6H16M6,18L14.5,12L6,6V18Z" /></svg>
+</svg>
+<svg id="mdi:skip-previous">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-skip-previous" viewBox="0 0 24 24"><path d="M6,18V6H8V18H6M9.5,12L18,6V18L9.5,12Z" /></svg>
+</svg>
+<svg id="mdi:trash-can">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-trash-can" viewBox="0 0 24 24"><path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M9,8H11V17H9V8M13,8H15V17H13V8Z" /></svg>
+</svg>
+<svg id="mdi:usb">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-usb" viewBox="0 0 24 24"><path d="M15,7V11H16V13H13V5H15L12,1L9,5H11V13H8V10.93C8.7,10.56 9.2,9.85 9.2,9C9.2,7.78 8.21,6.8 7,6.8C5.78,6.8 4.8,7.78 4.8,9C4.8,9.85 5.3,10.56 6,10.93V13A2,2 0 0,0 8,15H11V18.05C10.29,18.41 9.8,19.15 9.8,20A2.2,2.2 0 0,0 12,22.2A2.2,2.2 0 0,0 14.2,20C14.2,19.15 13.71,18.41 13,18.05V15H16A2,2 0 0,0 18,13V11H19V7H15Z" /></svg>
+</svg>
+<svg id="mdi:view-grid">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-view-grid" viewBox="0 0 24 24"><path d="M3,11H11V3H3M3,21H11V13H3M13,21H21V13H13M13,3V11H21V3" /></svg>
+</svg>
+<svg id="mdi:volume-high">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-volume-high" viewBox="0 0 24 24"><path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z" /></svg>
+</svg>
+<svg id="mdi:volume-medium">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-volume-medium" viewBox="0 0 24 24"><path d="M5,9V15H9L14,20V4L9,9M18.5,12C18.5,10.23 17.5,8.71 16,7.97V16C17.5,15.29 18.5,13.76 18.5,12Z" /></svg>
+</svg>
+<svg id="mdi:volume-off">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-volume-off" viewBox="0 0 24 24"><path d="M12,4L9.91,6.09L12,8.18M4.27,3L3,4.27L7.73,9H3V15H7L12,20V13.27L16.25,17.53C15.58,18.04 14.83,18.46 14,18.7V20.77C15.38,20.45 16.63,19.82 17.68,18.96L19.73,21L21,19.73L12,10.73M19,12C19,12.94 18.8,13.82 18.46,14.64L19.97,16.15C20.62,14.91 21,13.5 21,12C21,7.72 18,4.14 14,3.23V5.29C16.89,6.15 19,8.83 19,12M16.5,12C16.5,10.23 15.5,8.71 14,7.97V10.18L16.45,12.63C16.5,12.43 16.5,12.21 16.5,12Z" /></svg>
+</svg>
+<svg id="mdi:window-maximize">
+<svg xmlns="http://www.w3.org/2000/svg" id="mdi-window-maximize" viewBox="0 0 24 24"><path d="M4,4H20V20H4V4M6,8V18H18V8H6Z" /></svg>
+</svg>
+</defs>/* end glyphs */
+<style>/* inherit to force styles through use tags */
+svg path {
+    fill: inherit;
+}
+
+/* font and background color specifications */
+svg.keymap {
+    font-family: SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace;
+    font-size: 14px;
+    font-kerning: normal;
+    text-rendering: optimizeLegibility;
+    fill: #24292e;
+}
+
+/* default key styling */
+rect.key {
+    fill: #f6f8fa;
+}
+
+rect.key, rect.combo {
+    stroke: #c9cccf;
+    stroke-width: 1;
+}
+
+/* default key side styling, only used is draw_key_sides is set */
+rect.side {
+    filter: brightness(90%);
+}
+
+/* color accent for combo boxes */
+rect.combo, rect.combo-separate {
+    fill: #cdf;
+}
+
+/* color accent for held keys */
+rect.held, rect.combo.held {
+    fill: #fdd;
+}
+
+/* color accent for ghost (optional) keys */
+rect.ghost, rect.combo.ghost {
+    stroke-dasharray: 4, 4;
+    stroke-width: 2;
+}
+
+text {
+    text-anchor: middle;
+    dominant-baseline: middle;
+}
+
+/* styling for layer labels */
+text.label {
+    font-weight: bold;
+    text-anchor: start;
+    stroke: white;
+    stroke-width: 4;
+    paint-order: stroke;
+}
+
+/* styling for optional footer */
+text.footer {
+    text-anchor: end;
+    dominant-baseline: auto;
+    stroke: white;
+    stroke-width: 4;
+    paint-order: stroke;
+}
+
+/* styling for combo tap, and key non-tap label text */
+text.combo, text.hold, text.shifted, text.left, text.right, text.tl, text.tr, text.bl, text.br {
+    font-size: 11px;
+}
+
+text.hold, text.bl, text.br {
+    text-anchor: middle;
+    dominant-baseline: auto;
+}
+
+text.shifted, text.tl, text.tr {
+    text-anchor: middle;
+    dominant-baseline: hanging;
+}
+
+text.left, text.tl, text.bl {
+    text-anchor: start;
+}
+
+text.right, text.tr, text.br {
+    text-anchor: end;
+}
+
+text.layer-activator {
+    text-decoration: underline;
+}
+
+/* styling for hold/shifted label text in combo box */
+text.combo.hold, text.combo.shifted, text.combo.left, text.combo.right {
+    font-size: 8px;
+}
+
+/* lighter symbol for transparent keys */
+text.trans {
+    fill: #7b7e81;
+}
+
+/* styling for combo dendrons */
+path.combo {
+    stroke-width: 1;
+    stroke: gray;
+    fill: none;
+}
+
+/* Start Tabler Icons Cleanup */
+/* cannot use height/width with glyphs */
+.icon-tabler > path {
+    fill: inherit;
+    stroke: inherit;
+    stroke-width: 2;
+}
+/* hide tabler's default box */
+.icon-tabler > path[stroke="none"][fill="none"] {
+    visibility: hidden;
+}
+/* End Tabler Icons Cleanup */
+
+@media (prefers-color-scheme: dark) {
+svg.keymap { fill: #d1d6db; }
+rect.key { fill: #3f4750; }
+rect.key, rect.combo { stroke: #60666c; }
+rect.combo, rect.combo-separate { fill: #1f3d7a; }
+rect.held, rect.combo.held { fill: #854747; }
+text.label, text.footer { stroke: black; }
+text.trans { fill: #7e8184; }
+path.combo { stroke: #7f7f7f; }
+
+}
+svg.keymap {
+    fill: #eadbb0;
+    background: #a89984;
+}
+rect.key, rect.combo, rect.combo-separate {
+    fill: #282828;
+    stroke: #020101;
+    stroke-width: 2;
+}
+rect.trans {
+    fill: #5e6054;
+}
+rect.ghost, rect.combo.ghost {
+    fill: #686156;
+    stroke: none;
+    stroke-dasharray: none;
+}
+text.label, text.footer {
+    fill: #282828;
+    stroke: none;
+}
+# text.trans {
+#     fill: #a89984;
+# }
+/* Main key glyphs (tap/hold). MDI paths use fill="currentColor" which
+   resolves to black — invisible on dark keys — so we set an explicit
+   light fill matching the surrounding text labels. */
+use.tap, use.hold {
+    fill: #eadbb0;
+}
+text.hold {
+    font-size: 11px;
+    font-weight: 900;
+}
+text.sym {
+    font-size: 24px;
+}
+/* Layer annotation slot (text.tr/tl/bl, use.tr/tl/bl) and activator-key
+   CSS is generated by generate-keymaps.rb from toucan.annotation_layers.
+   Leader-namespace annotation and combo CSS is generated from
+   toucan.leader_namespaces.  Both are appended after this block. */
+    text.tr { fill: #e9ab2e; font-size: 10px; font-weight: 600; }
+    use.tr  { fill: #e9ab2e; }
+    text.nav-activator { fill: #e9ab2e; }
+    text.tl { fill: #83a598; font-size: 10px; font-weight: 600; }
+    use.tl  { fill: #83a598; }
+    text.fn-activator { fill: #83a598; }
+    text.bl { fill: #d65d0e; font-size: 10px; font-weight: 600; }
+    use.bl  { fill: #d65d0e; }
+    text.num-activator { fill: #d65d0e; }
+    text.br { fill: #5e9262; font-size: 10px; font-weight: 600; }
+    use.br  { fill: #5e9262; }
+    .combo.german-combo text, .combo.german-combo use { fill: #5e9262; }
+    text.left { fill: #458588; font-size: 10px; font-weight: 600; }
+    use.left  { fill: #458588; }
+    .combo.sys-combo text, .combo.sys-combo use { fill: #458588; }
+    text.greek-anno, use.greek-anno { fill: #f65869; }
+    .combo.greek-combo text, .combo.greek-combo use { fill: #f65869; }
+    text.combo-shift, use.combo-shift { fill: #ff70b8; }
+    .combo.combo-shift text, .combo.combo-shift use { fill: #ff70b8; }
+</style>
+<g transform="translate(30, 0)" class="layer-overlay">
+<text x="0" y="28" class="label" id="overlay">overlay</text>
+<g transform="translate(0, 56)">
+<g transform="translate(28, 49)" class="key keypos-0">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<use href="#mdi:keyboard-tab" xlink:href="#mdi:keyboard-tab" x="-11" y="-11" height="22" width="22.0" class="key tap glyph mdi:keyboard-tab"/>
+</g>
+<g transform="translate(84, 49)" class="key keypos-1">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">Q</text>
+<use href="#mdi:bluetooth-off" xlink:href="#mdi:bluetooth-off" x="-21" y="-6" height="12" width="12.0" class="key left glyph mdi:bluetooth-off"/>
+<use href="#mdi:volume-medium" xlink:href="#mdi:volume-medium" x="9" y="-21" height="12" width="12.0" class="key tr glyph mdi:volume-medium"/>
+</g>
+<g transform="translate(140, 35)" class="key keypos-2">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">W</text>
+<use href="#mdi:bluetooth-connect" xlink:href="#mdi:bluetooth-connect" x="-21" y="-6" height="12" width="12.0" class="key left glyph mdi:bluetooth-connect"/>
+<text x="21" y="0" class="key right greek-anno">ω</text>
+<text x="-21" y="-21" class="key tl">F1</text>
+<use href="#mdi:volume-off" xlink:href="#mdi:volume-off" x="9" y="-21" height="12" width="12.0" class="key tr glyph mdi:volume-off"/>
+</g>
+<g transform="translate(196, 28)" class="key keypos-3">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">E</text>
+<use href="#mdi:linux" xlink:href="#mdi:linux" x="-21" y="-6" height="12" width="12.0" class="key left glyph mdi:linux"/>
+<text x="21" y="0" class="key right greek-anno">ε</text>
+<text x="-21" y="-21" class="key tl">F2</text>
+<use href="#mdi:volume-high" xlink:href="#mdi:volume-high" x="9" y="-21" height="12" width="12.0" class="key tr glyph mdi:volume-high"/>
+</g>
+<g transform="translate(252, 35)" class="key keypos-4">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">R</text>
+<use href="#mdi:apple" xlink:href="#mdi:apple" x="-21" y="-6" height="12" width="12.0" class="key left glyph mdi:apple"/>
+<text x="21" y="0" class="key right greek-anno">ρ</text>
+<text x="-21" y="-21" class="key tl">F3</text>
+<use href="#mdi:brightness-7" xlink:href="#mdi:brightness-7" x="9" y="-21" height="12" width="12.0" class="key tr glyph mdi:brightness-7"/>
+</g>
+<g transform="translate(308, 41)" class="key keypos-5">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">T</text>
+<use href="#mdi:apple-ios" xlink:href="#mdi:apple-ios" x="-21" y="-6" height="12" width="12.0" class="key left glyph mdi:apple-ios"/>
+<text x="21" y="0" class="key right greek-anno">τ</text>
+<text x="-21" y="-21" class="key tl">F10</text>
+</g>
+<g transform="translate(476, 41)" class="key keypos-6">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">Y</text>
+<text x="21" y="0" class="key right greek-anno">ψ</text>
+<text x="21" y="-21" class="key tr">PgUp</text>
+</g>
+<g transform="translate(532, 35)" class="key keypos-7">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">U</text>
+<text x="21" y="0" class="key right greek-anno">υ</text>
+<text x="-21" y="-21" class="key tl">1</text>
+<text x="21" y="21" class="key br">ü</text>
+</g>
+<g transform="translate(588, 28)" class="key keypos-8">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">I</text>
+<text x="21" y="0" class="key right greek-anno">ι</text>
+<text x="-21" y="-21" class="key tl">2</text>
+<text x="21" y="-21" class="key tr">↑</text>
+</g>
+<g transform="translate(644, 35)" class="key keypos-9">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">O</text>
+<text x="21" y="0" class="key right greek-anno">ο</text>
+<text x="-21" y="-21" class="key tl">3</text>
+<text x="21" y="21" class="key br">ö</text>
+</g>
+<g transform="translate(700, 49)" class="key keypos-10">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">P</text>
+<text x="21" y="0" class="key right greek-anno">π</text>
+</g>
+<g transform="translate(756, 49)" class="key keypos-11">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<use href="#mdi:backspace-outline" xlink:href="#mdi:backspace-outline" x="-11" y="-11" height="22" width="22.0" class="key tap glyph mdi:backspace-outline"/>
+</g>
+<g transform="translate(28, 105)" class="key keypos-12">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap sym">⎋</text>
+</g>
+<g transform="translate(84, 105)" class="key keypos-13">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">A</text>
+<use href="#mdi:apple-keyboard-control" xlink:href="#mdi:apple-keyboard-control" x="-8" y="5" height="16" width="16.0" class="key hold glyph mdi:apple-keyboard-control"/>
+<use href="#mdi:bluetooth" xlink:href="#mdi:bluetooth" x="-25" y="-6" height="12" width="12.0" class="key left glyph mdi:bluetooth"/>
+<text x="-17" y="0" style="text-anchor:start" class="key left">1</text>
+<text x="21" y="0" class="key right greek-anno">α</text>
+<use href="#mdi:magnify" xlink:href="#mdi:magnify" x="9" y="-21" height="12" width="12.0" class="key tr glyph mdi:magnify"/>
+<text x="21" y="21" class="key br">ä</text>
+</g>
+<g transform="translate(140, 91)" class="key keypos-14">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">S</text>
+<use href="#mdi:apple-keyboard-option" xlink:href="#mdi:apple-keyboard-option" x="-8" y="5" height="16" width="16.0" class="key hold glyph mdi:apple-keyboard-option"/>
+<use href="#mdi:bluetooth" xlink:href="#mdi:bluetooth" x="-25" y="-6" height="12" width="12.0" class="key left glyph mdi:bluetooth"/>
+<text x="-17" y="0" style="text-anchor:start" class="key left">2</text>
+<text x="21" y="0" class="key right greek-anno">σ</text>
+<text x="-21" y="-21" class="key tl">F4</text>
+<use href="#mdi:microphone" xlink:href="#mdi:microphone" x="9" y="-21" height="12" width="12.0" class="key tr glyph mdi:microphone"/>
+<text x="21" y="21" class="key br">ß</text>
+</g>
+<g transform="translate(196, 84)" class="key keypos-15">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">D</text>
+<use href="#mdi:apple-keyboard-command" xlink:href="#mdi:apple-keyboard-command" x="-8" y="5" height="16" width="16.0" class="key hold glyph mdi:apple-keyboard-command"/>
+<use href="#mdi:bluetooth" xlink:href="#mdi:bluetooth" x="-25" y="-6" height="12" width="12.0" class="key left glyph mdi:bluetooth"/>
+<text x="-17" y="0" style="text-anchor:start" class="key left">3</text>
+<text x="21" y="0" class="key right greek-anno">δ</text>
+<text x="-21" y="-21" class="key tl">F5</text>
+<use href="#mdi:view-grid" xlink:href="#mdi:view-grid" x="9" y="-21" height="12" width="12.0" class="key tr glyph mdi:view-grid"/>
+</g>
+<g transform="translate(252, 91)" class="key keypos-16">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">F</text>
+<use href="#mdi:apple-keyboard-shift" xlink:href="#mdi:apple-keyboard-shift" x="-8" y="5" height="16" width="16.0" class="key hold glyph mdi:apple-keyboard-shift"/>
+<use href="#mdi:bluetooth" xlink:href="#mdi:bluetooth" x="-25" y="-6" height="12" width="12.0" class="key left glyph mdi:bluetooth"/>
+<text x="-17" y="0" style="text-anchor:start" class="key left">4</text>
+<text x="21" y="0" class="key right greek-anno">ϕ</text>
+<text x="-21" y="-21" class="key tl">F6</text>
+<use href="#mdi:moon-waning-crescent" xlink:href="#mdi:moon-waning-crescent" x="9" y="-21" height="12" width="12.0" class="key tr glyph mdi:moon-waning-crescent"/>
+</g>
+<g transform="translate(308, 97)" class="key keypos-17">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">G</text>
+<use href="#mdi:bluetooth" xlink:href="#mdi:bluetooth" x="-25" y="-6" height="12" width="12.0" class="key left glyph mdi:bluetooth"/>
+<text x="-17" y="0" style="text-anchor:start" class="key left">5</text>
+<text x="21" y="0" class="key right greek-anno">γ</text>
+<text x="-21" y="-21" class="key tl">F11</text>
+</g>
+<g transform="translate(476, 97)" class="key keypos-18">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">H</text>
+<text x="21" y="0" class="key right greek-anno">η</text>
+<text x="21" y="-21" class="key tr">PgDn</text>
+</g>
+<g transform="translate(532, 91)" class="key keypos-19">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">J</text>
+<use href="#mdi:apple-keyboard-shift" xlink:href="#mdi:apple-keyboard-shift" x="-8" y="5" height="16" width="16.0" class="key hold glyph mdi:apple-keyboard-shift"/>
+<text x="-21" y="-21" class="key tl">4</text>
+<text x="21" y="-21" class="key tr">←</text>
+</g>
+<g transform="translate(588, 84)" class="key keypos-20">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">K</text>
+<use href="#mdi:apple-keyboard-command" xlink:href="#mdi:apple-keyboard-command" x="-8" y="5" height="16" width="16.0" class="key hold glyph mdi:apple-keyboard-command"/>
+<text x="21" y="0" class="key right greek-anno">κ</text>
+<text x="-21" y="-21" class="key tl">5</text>
+<text x="21" y="-21" class="key tr">↓</text>
+</g>
+<g transform="translate(644, 91)" class="key keypos-21">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">L</text>
+<use href="#mdi:apple-keyboard-option" xlink:href="#mdi:apple-keyboard-option" x="-8" y="5" height="16" width="16.0" class="key hold glyph mdi:apple-keyboard-option"/>
+<text x="21" y="0" class="key right greek-anno">λ</text>
+<text x="-21" y="-21" class="key tl">6</text>
+<text x="21" y="-21" class="key tr">→</text>
+</g>
+<g transform="translate(700, 105)" class="key keypos-22">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">?</text>
+<use href="#mdi:apple-keyboard-control" xlink:href="#mdi:apple-keyboard-control" x="-8" y="5" height="16" width="16.0" class="key hold glyph mdi:apple-keyboard-control"/>
+<text x="0" y="-21" class="key shifted">!</text>
+<text x="-21" y="-21" class="key tl">0</text>
+</g>
+<g transform="translate(756, 105)" class="key keypos-23">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap sym">⎄</text>
+</g>
+<g transform="translate(28, 161)" class="key keypos-24">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<use href="#mdi:apple-keyboard-shift" xlink:href="#mdi:apple-keyboard-shift" x="-11" y="-11" height="22" width="22.0" class="key tap glyph mdi:apple-keyboard-shift"/>
+</g>
+<g transform="translate(84, 161)" class="key keypos-25">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">Z</text>
+<use href="#mdi:restart" xlink:href="#mdi:restart" x="-21" y="-6" height="12" width="12.0" class="key left glyph mdi:restart"/>
+<text x="21" y="0" class="key right greek-anno">ζ</text>
+<use href="#mdi:skip-previous" xlink:href="#mdi:skip-previous" x="9" y="-21" height="12" width="12.0" class="key tr glyph mdi:skip-previous"/>
+</g>
+<g transform="translate(140, 147)" class="key keypos-26">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">X</text>
+<use href="#mdi:flash" xlink:href="#mdi:flash" x="-21" y="-6" height="12" width="12.0" class="key left glyph mdi:flash"/>
+<text x="21" y="0" class="key right greek-anno">ξ</text>
+<text x="-21" y="-21" class="key tl">F7</text>
+<use href="#mdi:play-pause" xlink:href="#mdi:play-pause" x="9" y="-21" height="12" width="12.0" class="key tr glyph mdi:play-pause"/>
+</g>
+<g transform="translate(196, 140)" class="key keypos-27">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">C</text>
+<use href="#mdi:brush" xlink:href="#mdi:brush" x="-21" y="-6" height="12" width="12.0" class="key left glyph mdi:brush"/>
+<text x="21" y="0" class="key right greek-anno">χ</text>
+<text x="-21" y="-21" class="key tl">F8</text>
+<use href="#mdi:skip-next" xlink:href="#mdi:skip-next" x="9" y="-21" height="12" width="12.0" class="key tr glyph mdi:skip-next"/>
+</g>
+<g transform="translate(252, 147)" class="key keypos-28">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">V</text>
+<use href="#mdi:usb" xlink:href="#mdi:usb" x="-21" y="-6" height="12" width="12.0" class="key left glyph mdi:usb"/>
+<text x="21" y="0" class="key right greek-anno">θ</text>
+<text x="-21" y="-21" class="key tl">F9</text>
+<use href="#mdi:brightness-5" xlink:href="#mdi:brightness-5" x="9" y="-21" height="12" width="12.0" class="key tr glyph mdi:brightness-5"/>
+</g>
+<g transform="translate(308, 153)" class="key keypos-29">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">B</text>
+<text x="21" y="0" class="key right greek-anno">β</text>
+<text x="-21" y="-21" class="key tl">F12</text>
+</g>
+<g transform="translate(476, 153)" class="key keypos-30">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">N</text>
+<text x="21" y="0" class="key right greek-anno">ν</text>
+<text x="21" y="-21" class="key tr">Ins</text>
+</g>
+<g transform="translate(532, 147)" class="key keypos-31">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">M</text>
+<text x="21" y="0" class="key right greek-anno">μ</text>
+<text x="-21" y="-21" class="key tl">7</text>
+</g>
+<g transform="translate(588, 140)" class="key keypos-32">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">,</text>
+<text x="0" y="-21" class="key shifted">;</text>
+<text x="-21" y="-21" class="key tl">8</text>
+</g>
+<g transform="translate(644, 147)" class="key keypos-33">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">.</text>
+<text x="0" y="-21" class="key shifted">:</text>
+<text x="-21" y="-21" class="key tl">9</text>
+</g>
+<g transform="translate(700, 161)" class="key keypos-34">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap">&#x27;</text>
+<text x="0" y="-21" class="key shifted">&quot;</text>
+</g>
+<g transform="translate(756, 161)" class="key keypos-35">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<use href="#mdi:apple-keyboard-shift" xlink:href="#mdi:apple-keyboard-shift" x="-11" y="-11" height="22" width="22.0" class="key tap glyph mdi:apple-keyboard-shift"/>
+</g>
+<g transform="translate(224, 203)" class="key keypos-36">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap fn-activator">Fn</text>
+</g>
+<g transform="translate(285, 209) rotate(12.0)" class="key keypos-37">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap nav-activator">Nav</text>
+</g>
+<g transform="translate(345, 226) rotate(24.0)" class="key keypos-38">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<use href="#mdi:keyboard-space" xlink:href="#mdi:keyboard-space" x="-11" y="-11" height="22" width="22.0" class="key tap glyph mdi:keyboard-space"/>
+</g>
+<g transform="translate(439, 226) rotate(-24.0)" class="key keypos-39">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<use href="#mdi:keyboard-return" xlink:href="#mdi:keyboard-return" x="-11" y="-11" height="22" width="22.0" class="key tap glyph mdi:keyboard-return"/>
+</g>
+<g transform="translate(499, 209) rotate(-12.0)" class="key keypos-40">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<use href="#mdi:backspace-outline" xlink:href="#mdi:backspace-outline" x="-11" y="-11" height="22" width="22.0" class="key tap glyph mdi:backspace-outline"/>
+</g>
+<g transform="translate(560, 203)" class="key keypos-41">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
+<text x="0" y="0" class="key tap fn-activator">Fn</text>
+</g>
+</g>
+</g>
+<g transform="translate(30, 319)" class="layer-combo">
+<text x="0" y="28" class="label" id="combo">combo</text>
+<g transform="translate(0, 56)">
+<g transform="translate(28, 49)" class="key ghost keypos-0">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(84, 49)" class="key ghost keypos-1">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(140, 35)" class="key ghost keypos-2">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(196, 28)" class="key ghost keypos-3">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(252, 35)" class="key ghost keypos-4">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(308, 41)" class="key ghost keypos-5">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(476, 41)" class="key ghost keypos-6">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(532, 35)" class="key ghost keypos-7">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(588, 28)" class="key ghost keypos-8">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(644, 35)" class="key ghost keypos-9">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(700, 49)" class="key ghost keypos-10">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(756, 49)" class="key ghost keypos-11">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(28, 105)" class="key ghost keypos-12">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(84, 105)" class="key ghost keypos-13">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(140, 91)" class="key ghost keypos-14">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(196, 84)" class="key ghost keypos-15">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(252, 91)" class="key ghost keypos-16">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(308, 97)" class="key ghost keypos-17">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(476, 97)" class="key ghost keypos-18">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(532, 91)" class="key ghost keypos-19">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(588, 84)" class="key ghost keypos-20">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(644, 91)" class="key ghost keypos-21">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(700, 105)" class="key ghost keypos-22">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(756, 105)" class="key ghost keypos-23">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(28, 161)" class="key ghost keypos-24">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(84, 161)" class="key ghost keypos-25">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(140, 147)" class="key ghost keypos-26">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(196, 140)" class="key ghost keypos-27">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(252, 147)" class="key ghost keypos-28">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(308, 153)" class="key ghost keypos-29">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(476, 153)" class="key ghost keypos-30">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(532, 147)" class="key ghost keypos-31">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(588, 140)" class="key ghost keypos-32">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(644, 147)" class="key ghost keypos-33">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(700, 161)" class="key ghost keypos-34">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(756, 161)" class="key ghost keypos-35">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(224, 203)" class="key ghost keypos-36">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(285, 209) rotate(12.0)" class="key ghost keypos-37">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(345, 226) rotate(24.0)" class="key ghost keypos-38">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(439, 226) rotate(-24.0)" class="key ghost keypos-39">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(499, 209) rotate(-12.0)" class="key ghost keypos-40">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g transform="translate(560, 203)" class="key ghost keypos-41">
+<rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key ghost"/>
+</g>
+<g class="combo combopos-0">
+<rect rx="6" ry="6" x="154" y="18" width="28" height="26" class="combo"/>
+<text x="168" y="31" class="combo tap sym">⎋</text>
+</g>
+<g class="combo combopos-1">
+<rect rx="6" ry="6" x="154" y="74" width="28" height="26" class="combo"/>
+<use href="#mdi:window-maximize" xlink:href="#mdi:window-maximize" x="157" y="76" height="22" width="22.0" class="combo tap glyph mdi:window-maximize"/>
+</g>
+<g class="combo combopos-2">
+<path d="M196,209 h-50 a6.0,6.0 0 0 1 -6.0,-6.0 v-38" class="combo"/>
+<path d="M196,209 h50 a6.0,6.0 0 0 0 6.0,-6.0 v-38" class="combo"/>
+<rect rx="6" ry="6" x="182" y="196" width="28" height="26" class="combo"/>
+<use href="#mdi:content-cut" xlink:href="#mdi:content-cut" x="185" y="198" height="22" width="22.0" class="combo tap glyph mdi:content-cut"/>
+</g>
+<g class="combo combopos-3">
+<rect rx="6" ry="6" x="154" y="130" width="28" height="26" class="combo"/>
+<use href="#mdi:content-copy" xlink:href="#mdi:content-copy" x="157" y="132" height="22" width="22.0" class="combo tap glyph mdi:content-copy"/>
+</g>
+<g class="combo combopos-4">
+<rect rx="6" ry="6" x="210" y="130" width="28" height="26" class="combo"/>
+<use href="#mdi:content-paste" xlink:href="#mdi:content-paste" x="213" y="132" height="22" width="22.0" class="combo tap glyph mdi:content-paste"/>
+</g>
+<g class="combo combopos-5">
+<rect rx="6" ry="6" x="546" y="18" width="28" height="26" class="combo"/>
+<use href="#mdi:backspace-outline" xlink:href="#mdi:backspace-outline" x="549" y="20" height="22" width="22.0" class="combo tap glyph mdi:backspace-outline"/>
+</g>
+<g class="combo combopos-6">
+<rect rx="6" ry="6" x="602" y="18" width="28" height="26" class="combo"/>
+<use href="#mdi:trash-can" xlink:href="#mdi:trash-can" x="605" y="20" height="22" width="22.0" class="combo tap glyph mdi:trash-can"/>
+</g>
+<g class="combo combopos-7">
+<rect rx="6" ry="6" x="546" y="74" width="28" height="26" class="combo"/>
+<text x="560" y="87" class="combo tap">(</text>
+<text x="569" y="87" class="combo right combo-shift">&lt;</text>
+</g>
+<g class="combo combopos-8">
+<rect rx="6" ry="6" x="602" y="74" width="28" height="26" class="combo"/>
+<text x="616" y="87" class="combo tap">)</text>
+<text x="625" y="87" class="combo right combo-shift">&gt;</text>
+</g>
+<g class="combo combopos-9">
+<rect rx="6" ry="6" x="546" y="130" width="28" height="26" class="combo"/>
+<text x="560" y="143" class="combo tap">[</text>
+<text x="569" y="143" class="combo right combo-shift">{</text>
+</g>
+<g class="combo combopos-10">
+<rect rx="6" ry="6" x="602" y="130" width="28" height="26" class="combo"/>
+<text x="616" y="143" class="combo tap">]</text>
+<text x="625" y="143" class="combo right combo-shift">}</text>
+</g>
+<g class="combo greek-combo combopos-11">
+<rect rx="6" ry="6" x="490" y="81" width="28" height="26" class="combo greek-combo"/>
+<text x="504" y="94" class="combo greek-combo tap">α</text>
+</g>
+<g class="combo german-combo combopos-12">
+<rect rx="6" ry="6" x="210" y="74" width="28" height="26" class="combo german-combo"/>
+<text x="224" y="87" class="combo german-combo tap">ä</text>
+</g>
+<g class="combo sys-combo combopos-13">
+<rect rx="6" ry="6" x="266" y="137" width="28" height="26" class="combo sys-combo"/>
+<use href="#mdi:cog" xlink:href="#mdi:cog" x="269" y="139" height="22" width="22.0" class="combo sys-combo tap glyph mdi:cog"/>
+</g>
+<g class="combo combopos-14">
+<rect rx="6" ry="6" x="126" y="50" width="28" height="26" class="combo"/>
+<text x="140" y="63" class="combo tap">@</text>
+</g>
+<g class="combo combopos-15">
+<rect rx="6" ry="6" x="182" y="43" width="28" height="26" class="combo"/>
+<text x="196" y="56" class="combo tap">#</text>
+</g>
+<g class="combo combopos-16">
+<rect rx="6" ry="6" x="238" y="50" width="28" height="26" class="combo"/>
+<text x="252" y="63" class="combo tap">$</text>
+</g>
+<g class="combo combopos-17">
+<rect rx="6" ry="6" x="294" y="56" width="28" height="26" class="combo"/>
+<text x="308" y="69" class="combo tap">%</text>
+</g>
+<g class="combo combopos-18">
+<rect rx="6" ry="6" x="126" y="106" width="28" height="26" class="combo"/>
+<text x="140" y="119" class="combo tap">`</text>
+</g>
+<g class="combo combopos-19">
+<rect rx="6" ry="6" x="182" y="99" width="28" height="26" class="combo"/>
+<text x="196" y="112" class="combo tap">\</text>
+</g>
+<g class="combo combopos-20">
+<rect rx="6" ry="6" x="238" y="106" width="28" height="26" class="combo"/>
+<text x="252" y="119" class="combo tap">=</text>
+</g>
+<g class="combo combopos-21">
+<rect rx="6" ry="6" x="294" y="112" width="28" height="26" class="combo"/>
+<text x="308" y="125" class="combo tap">~</text>
+</g>
+<g class="combo combopos-22">
+<rect rx="6" ry="6" x="462" y="56" width="28" height="26" class="combo"/>
+<text x="476" y="69" class="combo tap">^</text>
+</g>
+<g class="combo combopos-23">
+<rect rx="6" ry="6" x="518" y="50" width="28" height="26" class="combo"/>
+<text x="532" y="63" class="combo tap">+</text>
+</g>
+<g class="combo combopos-24">
+<rect rx="6" ry="6" x="574" y="43" width="28" height="26" class="combo"/>
+<text x="588" y="56" class="combo tap">*</text>
+</g>
+<g class="combo combopos-25">
+<rect rx="6" ry="6" x="630" y="50" width="28" height="26" class="combo"/>
+<text x="644" y="63" class="combo tap">&amp;</text>
+</g>
+<g class="combo combopos-26">
+<rect rx="6" ry="6" x="462" y="112" width="28" height="26" class="combo"/>
+<text x="476" y="125" class="combo tap">_</text>
+</g>
+<g class="combo combopos-27">
+<rect rx="6" ry="6" x="518" y="106" width="28" height="26" class="combo"/>
+<text x="532" y="119" class="combo tap">-</text>
+</g>
+<g class="combo combopos-28">
+<rect rx="6" ry="6" x="574" y="99" width="28" height="26" class="combo"/>
+<text x="588" y="112" class="combo tap">/</text>
+</g>
+<g class="combo combopos-29">
+<rect rx="6" ry="6" x="630" y="106" width="28" height="26" class="combo"/>
+<text x="644" y="119" class="combo tap">|</text>
+</g>
+</g>
+</g>
+<text x="814.0" y="665.0" class="footer">zmk-keyboard-toucan</text></svg>

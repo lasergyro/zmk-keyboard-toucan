@@ -1,0 +1,4 @@
+.build/
+ToucanOverlay.app/
+*.xcodeproj
+.DS_Store

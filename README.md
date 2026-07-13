@@ -72,6 +72,7 @@ Keymap visualization config (annotation positions, colors, binding labels) in [d
 - `dts/`: Custom Devicetree bindings.
 - `external/`: Git submodules for ZMK, Cirque input drivers, and other helper modules.
 - `include/`: C header files for custom RPC interfaces and ZMK behaviors.
+- `overlay/`: macOS menu-bar app that shows the keymap as a draggable liquid-glass overlay while training. See [overlay/README.md](overlay/README.md).
 - `plans/`: Archived development plans, roadmaps, and AI agent artifacts.
 - `references/`: Reference material, datasheets, and HID usage tables.
 - `scripts/`: Utility shell scripts and Python tools for live tuning and RPC communication.
