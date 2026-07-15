@@ -126,13 +126,13 @@ HRM_R(hmr_l, RALT,  L)
 ZMK_MOD_MORPH(hmr_qmark, bindings = <&hmr_qmark_morph RCTRL 0>, <&qmark_morph>;
     mods = <MODS_LEFT>; keep-mods = <MODS_LEFT>;)
 
-/* NAV */
+/* NAV — left-hand HRMs only. The arrows (right hand) are plain &kp so a long
+   press repeats instead of resolving to a modifier; modifiers on this layer come
+   from the left hand (CTRL/ALT/GUI on the homerow, SHIFT on the bottom-row pinky
+   which is transparent to BASE's LSHFT). */
 HRM_L(hml_search, LCTRL, C_AC_SEARCH)
 HRM_L(hml_voice,  LALT,  C_VOICE_COMMAND)
 HRM_L(hml_wins,   LGUI,  C_AC_DESKTOP_SHOW_ALL_WINDOWS)
-HRM_R(hmr_left,   RSHFT, LEFT)
-HRM_R(hmr_down,   RGUI,  DOWN)
-HRM_R(hmr_right,  RALT,  RIGHT)
 
 /* FN */
 HRM_L(hml_f4, LALT,  F4)
@@ -192,7 +192,7 @@ ZMK_LAYER(Nav,
 // ╭───────────┬───────────┬───────────┬───────────┬───────────┬───────────╮ ╭───────────┬───────────┬───────────┬───────────┬───────────┬───────────╮
     ___          &kp C_VOL_DN &kp C_MUTE &kp C_VOL_UP &kp C_BRI_UP   ___       &kp PG_UP   ___         &kp UP      ___         ___         ___
 // ├───────────┼───────────┼───────────┼───────────┼───────────┼───────────┤ ├───────────┼───────────┼───────────┼───────────┼───────────┼───────────┤
-    ___         &hml_search &hml_voice  &hml_wins   &kp SYS_DND     ___        &kp PG_DN   &hmr_left   &hmr_down   &hmr_right  ___         ___
+    ___         &hml_search &hml_voice  &hml_wins   &kp SYS_DND     ___        &kp PG_DN   &kp LEFT    &kp DOWN    &kp RIGHT   ___         ___
 // ├───────────┼───────────┼───────────┼───────────┼───────────┼───────────┤ ├───────────┼───────────┼───────────┼───────────┼───────────┼───────────┤
     ___          &kp C_PREV  &kp C_PP    &kp C_NEXT  &kp C_BRI_DN    ___       &kp INS     ___         ___         ___         ___         ___
 // ╰───────────┴───────────┴───────────┼───────────┼───────────┼───────────┤ ├───────────┼───────────┼───────────┼───────────┴───────────┴───────────╯
