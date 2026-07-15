@@ -722,7 +722,6 @@ text.sym {
 <g class="combo combopos-1">
 <rect rx="6" ry="6" x="154" y="74" width="28" height="26" class="combo"/>
 <use href="#mdi:window-maximize" xlink:href="#mdi:window-maximize" x="157" y="76" height="22" width="22.0" class="combo tap glyph mdi:window-maximize"/>
-<text x="168" y="95" class="combo hold"><tspan style="font-size: 64%">&amp;mods_alt_…</tspan></text>
 </g>
 <g class="combo combopos-2">
 <path d="M196,209 h-50 a6.0,6.0 0 0 1 -6.0,-6.0 v-38" class="combo"/>
@@ -749,13 +748,11 @@ text.sym {
 <g class="combo combopos-7">
 <rect rx="6" ry="6" x="546" y="74" width="28" height="26" class="combo"/>
 <text x="560" y="87" class="combo tap">(</text>
-<text x="560" y="95" class="combo hold"><tspan style="font-size: 64%">&amp;mods_rsft…</tspan></text>
 <text x="569" y="87" class="combo right combo-shift">&lt;</text>
 </g>
 <g class="combo combopos-8">
 <rect rx="6" ry="6" x="602" y="74" width="28" height="26" class="combo"/>
 <text x="616" y="87" class="combo tap">)</text>
-<text x="616" y="95" class="combo hold"><tspan style="font-size: 64%">&amp;mods_rgui…</tspan></text>
 <text x="625" y="87" class="combo right combo-shift">&gt;</text>
 </g>
 <g class="combo combopos-9">
@@ -775,7 +772,6 @@ text.sym {
 <g class="combo german-combo combopos-12">
 <rect rx="6" ry="6" x="210" y="74" width="28" height="26" class="combo german-combo"/>
 <text x="224" y="87" class="combo german-combo tap">ä</text>
-<text x="224" y="95" class="combo german-combo hold"><tspan style="font-size: 64%">&amp;mods_gui_…</tspan></text>
 </g>
 <g class="combo sys-combo combopos-13">
 <rect rx="6" ry="6" x="266" y="137" width="28" height="26" class="combo sys-combo"/>

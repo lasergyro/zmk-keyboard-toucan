@@ -101,9 +101,15 @@ two_key_combos = combos.select { |combo| Array(combo["p"]).length == 2 && !combo
 # Convert automatically parsed 's' (shifted) properties on combos to 'right'
 # and tag them with combo-shift for pink, smaller rendering.
 two_key_combos.each do |combo|
-  if combo["k"].is_a?(Hash) && combo["k"]["s"]
+  next unless combo["k"].is_a?(Hash)
+  if combo["k"]["s"]
     combo["k"]["right"] = annotate(combo["k"].delete("s"), "combo-shift")
   end
+  # Drop auto-parsed hold labels on home-row-mod combos (e.g. the raw
+  # "&mods_rsft_rgui" behavior): the combo layer doesn't need to show the
+  # home-row mods, and the raw binding name just overflows the small cell.
+  hold = combo["k"]["h"]
+  combo["k"].delete("h") if hold.is_a?(String) && hold.start_with?("&")
 end
 
 # ── Toucan config ───────────────────────────────────────────────────────────
