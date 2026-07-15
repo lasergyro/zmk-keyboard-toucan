@@ -56,7 +56,7 @@ For exact key assignments, see  "Config Files".
 - **Combos** — two-key horizontal and vertical combos in `config/combos.dtsi`. Produce symbols, navigation shortcuts, and namespace-combo triggers. The four combos that sit on adjacent homerow-mod pairs are hold-taps: tap → combo, hold → both modifiers.
 - **Precedence** — layers, combos, homerow mods and the leader all compete for the same keypress. [docs/keymap_behavior.md](docs/keymap_behavior.md) documents who wins, the timing windows, and the known rough edges.
 - **Leader sequences** — three namespaces triggered by combo macros (`greek_ns`, `german_ns`, `sys_ns`). `&leader` is never invoked bare. See [config/leader.dtsi](config/leader.dtsi) and [config/leader_greek.dtsi](config/leader_greek.dtsi) for sequences.
-- **Visualization** — [draw/config.yaml](draw/config.yaml) is the single source of truth for annotation slot positions and colors; `draw/generate-keymaps.rb` derives all layer/leader CSS from it. Run `./draw-keymap.sh` to regenerate [draw/keymap.svg](draw/keymap.svg).
+- **Visualization** — [draw/config.yaml](draw/config.yaml) is the single source of truth for annotation slot positions and colors; `draw/generate-keymaps.rb` derives all layer/leader CSS from it. Run `pixi run ./draw-keymap.sh` to regenerate [draw/keymap.svg](draw/keymap.svg).
 
 
 ### Keymap Visualization
@@ -76,9 +76,10 @@ Keymap visualization config (annotation positions, colors, binding labels) in [d
 - `overlay/`: macOS menu-bar app that shows the keymap as a draggable liquid-glass overlay while training. See [overlay/README.md](overlay/README.md).
 - `plans/`: Archived development plans, roadmaps, and AI agent artifacts.
 - `references/`: Reference material, datasheets, and HID usage tables.
-- `scripts/`: Utility shell scripts and Python tools for live tuning and RPC communication.
+- `scripts/`: Shell scripts for building and flashing (`build.sh`, `upload.sh`) plus Zephyr dependency setup.
 - `src/`: Custom C source code implementing RPC endpoints, behaviors, and ZMK Studio integration.
 - `tests/`: Python-based automated gesture pipeline and RPC tests.
+- `toucan_debug/`: Python package for RPC communication, live tuning, and tracing (`RPCSession`, `serial_rpc`, `patcher`).
 
 ## Development Workflow
 
@@ -87,7 +88,7 @@ Keymap visualization config (annotation positions, colors, binding labels) in [d
 #### Environment Setup
 This repository uses `pixi` to manage its Python environment, tools, and Zephyr dependencies.
 1. Install [pixi](https://pixi.sh/latest/#installation).
-2. The environment will be automatically instantiated the first time you run any of the project scripts (like `./debug.sh`, `./release.sh`, or `./draw-keymap.sh`) or when you execute commands via `pixi run`.
+2. The self-bootstrapping scripts (`./debug.sh`, `./release.sh`) instantiate the environment automatically the first time you run them. Everything else runs via `pixi run` (e.g. `pixi run ./draw-keymap.sh`, `pixi run python -m pytest tests/pad`).
 
 #### OS Setup Instructions (macOS)
 To get the best experience out of the Toucan trackpad on macOS, you should perform the following configuration:
@@ -115,7 +116,7 @@ When flashing UF2 firmware to devices (e.g. XIAO nRF52840 in bootloader mode), m
 All tests (in `tests/`) should follow this standard recipe:
 
 #### Test Recipe
-1. **Clean Abstraction**: Import and use `debug_tool.RPCSession` from `scripts/debug_tool.py` for all communication. Never import `serial_rpc.py` directly.
+1. **Clean Abstraction**: Import and use `RPCSession` from the `toucan_debug` package (`from toucan_debug.debug_tool import RPCSession`) for all communication. Never import `serial_rpc.py` directly.
 2. **Isolate Environment**: Always request `quarantine on` at the beginning of the test to block physical interference, and `quarantine off` when done.
 3. **Queued Execution**: Do not use `time.sleep()` in test scripts. All timing and event sequences must be queued via `qi` (or `run_scenario()`) and executed via `qo`.
 4. **Global Position Injection**: Peripheral key events must be injected at the Central (left) half using their global position indices.
@@ -179,7 +180,7 @@ Expected: 4 lines — left rpc, left log, right rpc, right log.
  4. Run Automated Tests
 ```bash
 pkill -9 -f "python.*debug|debug.sh|pyserial" || true
-pixi run python tests/test_pad.py
+pixi run python -m pytest tests/pad
 ```
 
  5. Live Logs
@@ -213,7 +214,7 @@ When contributing to this repository or its submodules, please format your commi
 ## Architecture
 
 Touchpad specific notes in [touchpad.md](docs/touchpad.md).
-Generic Desktop HID usage page reference (e.g. System Do Not Disturb) is in [plans/generic_desktop.md](plans/generic_desktop.md).
+Generic Desktop HID usage page reference (e.g. System Do Not Disturb) is in [plans/2026-06-04-generic_desktop.md](plans/2026-06-04-generic_desktop.md).
 
 ### Build Composition
 
@@ -265,13 +266,9 @@ The `config/west.yml` declares multiple upstream dependencies which currently tr
 
 **Markdown prose**: do not hard-wrap paragraphs — write each paragraph (and each list item) as a single unbroken line and let the editor soft-wrap. This keeps diffs to whole edited sentences rather than reflow noise.
 
-**Generic Patcher**: if normal edit tools are not the first choice, use the generic patching tool `scripts/patcher.py` to make targeted changes to files without needing to write custom Python scripts each time. You can invoke it like `pixi run python scripts/patcher.py <file> --search "<search_text>" --replace "<replace_text>"`.
+**Generic Patcher**: if normal edit tools are not the first choice, use the generic patching tool `toucan_debug/patcher.py` to make targeted changes to files without needing to write custom Python scripts each time. You can invoke it like `pixi run python toucan_debug/patcher.py <file> --search "<search_text>" --replace "<replace_text>"`.
 
-To prevent repetitive mistakes during future sessions, follow these rules when using tools:
-- **Avoid `cat | grep` or `grep` in bash**: Always prioritize the `grep_search` tool over running `grep` in a bash command. Do not use `cat` for viewing files or `grep` for searching files via the `run_command` tool.
-- **File Finding**: Do not use `find . -name "..."` as an unbounded bash command (it runs as a long background task). Instead, use `grep_search` with the `Includes` filter or `list_dir` to find files efficiently.
-- **Task Logs**: Never use `cat` to read a background task's log file (e.g., `.system_generated/tasks/task-xxx.log`) manually, as it may not exist yet or might be truncated.
-- **Background Tasks**: Do not poll a running background task repeatedly using `manage_task status`. Launch the task and yield your turn by making no more tool calls; the system will automatically notify you and wake you up when the task completes.
+**Gemini agent tool rules**: tool-usage conventions specific to the Gemini agent harness (`grep_search`, `list_dir`, `manage_task`, etc.) are in [docs/gemini.md](docs/gemini.md).
 
 ### Basic Project Commands
 - **Build Firmware:**
@@ -281,7 +278,7 @@ To prevent repetitive mistakes during future sessions, follow these rules when u
 - **Execute Python:**
   All python scripts must be run via `pixi run python`.
 - **Execute Python Tests:**
-  e.g. `pixi run python tests/test_pad.py`
+  e.g. `pixi run python -m pytest tests/pad`
 - **Stream Live Device Logs:**
   `./debug.sh logs both`
 
