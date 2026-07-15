@@ -58,9 +58,25 @@ Resolved in this order:
    drawing. Re-run `../draw-keymap.sh` then **Reload Keymap** to refresh.
 4. The copy bundled into the app at build time (fallback).
 
+## Icon
+
+The menu-bar glyph and the `.app` icon are both the **left half of the keymap**
+outlines (`icon/`). Regenerate after a layout change:
+
+```sh
+./icon/build-icon.sh   # rewrites icon.svg, ToucanOverlay.icns, menu-bar template
+```
+
+`build.sh` copies `icon/ToucanOverlay.icns` into the bundle; the menu-bar
+template (`Sources/ToucanOverlay/Resources/toucan-menubar.pdf`) ships as a
+Swift-package resource.
+
 ## Notes
 
-* Window position/size persist between launches.
+* Window position/size persist between launches, **per display** — each
+  monitor remembers its own size and location (keyed by display UUID), so
+  switching or reconnecting screens restores the right layout instead of
+  landing off-screen. **Reset Position** re-centers on the current display.
 * The post-processing (footer removal + transparent/liquid-glass background)
   lives in `Sources/ToucanOverlay/KeymapSVG.swift` and runs at load, so it
   always reflects the latest generated keymap without a separate export step.

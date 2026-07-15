@@ -394,6 +394,7 @@ text.sym {
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">A</text>
 <use href="#mdi:apple-keyboard-control" xlink:href="#mdi:apple-keyboard-control" x="-8" y="5" height="16" width="16.0" class="key hold glyph mdi:apple-keyboard-control"/>
+<text x="0" y="-21" class="key shifted">A</text>
 <use href="#mdi:bluetooth" xlink:href="#mdi:bluetooth" x="-25" y="-6" height="12" width="12.0" class="key left glyph mdi:bluetooth"/>
 <text x="-17" y="0" style="text-anchor:start" class="key left">1</text>
 <text x="21" y="0" class="key right greek-anno">α</text>
@@ -404,6 +405,7 @@ text.sym {
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">S</text>
 <use href="#mdi:apple-keyboard-option" xlink:href="#mdi:apple-keyboard-option" x="-8" y="5" height="16" width="16.0" class="key hold glyph mdi:apple-keyboard-option"/>
+<text x="0" y="-21" class="key shifted">S</text>
 <use href="#mdi:bluetooth" xlink:href="#mdi:bluetooth" x="-25" y="-6" height="12" width="12.0" class="key left glyph mdi:bluetooth"/>
 <text x="-17" y="0" style="text-anchor:start" class="key left">2</text>
 <text x="21" y="0" class="key right greek-anno">σ</text>
@@ -415,6 +417,7 @@ text.sym {
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">D</text>
 <use href="#mdi:apple-keyboard-command" xlink:href="#mdi:apple-keyboard-command" x="-8" y="5" height="16" width="16.0" class="key hold glyph mdi:apple-keyboard-command"/>
+<text x="0" y="-21" class="key shifted">D</text>
 <use href="#mdi:bluetooth" xlink:href="#mdi:bluetooth" x="-25" y="-6" height="12" width="12.0" class="key left glyph mdi:bluetooth"/>
 <text x="-17" y="0" style="text-anchor:start" class="key left">3</text>
 <text x="21" y="0" class="key right greek-anno">δ</text>
@@ -425,6 +428,7 @@ text.sym {
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">F</text>
 <use href="#mdi:apple-keyboard-shift" xlink:href="#mdi:apple-keyboard-shift" x="-8" y="5" height="16" width="16.0" class="key hold glyph mdi:apple-keyboard-shift"/>
+<text x="0" y="-21" class="key shifted">F</text>
 <use href="#mdi:bluetooth" xlink:href="#mdi:bluetooth" x="-25" y="-6" height="12" width="12.0" class="key left glyph mdi:bluetooth"/>
 <text x="-17" y="0" style="text-anchor:start" class="key left">4</text>
 <text x="21" y="0" class="key right greek-anno">ϕ</text>
@@ -449,6 +453,7 @@ text.sym {
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">J</text>
 <use href="#mdi:apple-keyboard-shift" xlink:href="#mdi:apple-keyboard-shift" x="-8" y="5" height="16" width="16.0" class="key hold glyph mdi:apple-keyboard-shift"/>
+<text x="0" y="-21" class="key shifted">J</text>
 <text x="-21" y="-21" class="key tl">4</text>
 <text x="21" y="-21" class="key tr">←</text>
 </g>
@@ -456,6 +461,7 @@ text.sym {
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">K</text>
 <use href="#mdi:apple-keyboard-command" xlink:href="#mdi:apple-keyboard-command" x="-8" y="5" height="16" width="16.0" class="key hold glyph mdi:apple-keyboard-command"/>
+<text x="0" y="-21" class="key shifted">K</text>
 <text x="21" y="0" class="key right greek-anno">κ</text>
 <text x="-21" y="-21" class="key tl">5</text>
 <text x="21" y="-21" class="key tr">↓</text>
@@ -464,6 +470,7 @@ text.sym {
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">L</text>
 <use href="#mdi:apple-keyboard-option" xlink:href="#mdi:apple-keyboard-option" x="-8" y="5" height="16" width="16.0" class="key hold glyph mdi:apple-keyboard-option"/>
+<text x="0" y="-21" class="key shifted">L</text>
 <text x="21" y="0" class="key right greek-anno">λ</text>
 <text x="-21" y="-21" class="key tl">6</text>
 <text x="21" y="-21" class="key tr">→</text>
@@ -472,7 +479,7 @@ text.sym {
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">?</text>
 <use href="#mdi:apple-keyboard-control" xlink:href="#mdi:apple-keyboard-control" x="-8" y="5" height="16" width="16.0" class="key hold glyph mdi:apple-keyboard-control"/>
-<text x="0" y="-21" class="key shifted">!</text>
+<text x="0" y="-21" class="key shifted">?</text>
 <text x="-21" y="-21" class="key tl">0</text>
 </g>
 <g transform="translate(756, 105)" class="key keypos-23">
@@ -715,6 +722,7 @@ text.sym {
 <g class="combo combopos-1">
 <rect rx="6" ry="6" x="154" y="74" width="28" height="26" class="combo"/>
 <use href="#mdi:window-maximize" xlink:href="#mdi:window-maximize" x="157" y="76" height="22" width="22.0" class="combo tap glyph mdi:window-maximize"/>
+<text x="168" y="95" class="combo hold"><tspan style="font-size: 64%">&amp;mods_alt_…</tspan></text>
 </g>
 <g class="combo combopos-2">
 <path d="M196,209 h-50 a6.0,6.0 0 0 1 -6.0,-6.0 v-38" class="combo"/>
@@ -741,11 +749,13 @@ text.sym {
 <g class="combo combopos-7">
 <rect rx="6" ry="6" x="546" y="74" width="28" height="26" class="combo"/>
 <text x="560" y="87" class="combo tap">(</text>
+<text x="560" y="95" class="combo hold"><tspan style="font-size: 64%">&amp;mods_rsft…</tspan></text>
 <text x="569" y="87" class="combo right combo-shift">&lt;</text>
 </g>
 <g class="combo combopos-8">
 <rect rx="6" ry="6" x="602" y="74" width="28" height="26" class="combo"/>
 <text x="616" y="87" class="combo tap">)</text>
+<text x="616" y="95" class="combo hold"><tspan style="font-size: 64%">&amp;mods_rgui…</tspan></text>
 <text x="625" y="87" class="combo right combo-shift">&gt;</text>
 </g>
 <g class="combo combopos-9">
@@ -765,6 +775,7 @@ text.sym {
 <g class="combo german-combo combopos-12">
 <rect rx="6" ry="6" x="210" y="74" width="28" height="26" class="combo german-combo"/>
 <text x="224" y="87" class="combo german-combo tap">ä</text>
+<text x="224" y="95" class="combo german-combo hold"><tspan style="font-size: 64%">&amp;mods_gui_…</tspan></text>
 </g>
 <g class="combo sys-combo combopos-13">
 <rect rx="6" ry="6" x="266" y="137" width="28" height="26" class="combo sys-combo"/>

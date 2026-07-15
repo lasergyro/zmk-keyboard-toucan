@@ -1,6 +1,14 @@
 import AppKit
 import WebKit
 
+/// Keymap web view that suppresses WebKit's default right-click menu (Reload,
+/// Back/Forward, …) — meaningless on a non-interactive overlay.
+private final class KeymapWebView: WKWebView {
+    override func willOpenMenu(_ menu: NSMenu, with event: NSEvent) {
+        menu.removeAllItems()   // empty menu → nothing pops up
+    }
+}
+
 /// Transparent overlay that sits above the keymap and turns any click-drag into
 /// a window move. Because it covers the web view, the web content never
 /// receives mouse events — so nothing inside is selectable either.
@@ -18,17 +26,24 @@ final class OverlayController: NSObject, NSWindowDelegate {
     let panel: NSPanel
     private let webView: WKWebView
     private let aspect = KeymapSVG.aspect
-    private let frameAutosave = "ToucanOverlayFrame.v2"   // bumped: reset to new default size
     private let corner: CGFloat = 20
     private let resizeMargin: CGFloat = 8                 // outer ring reserved for edge-resize
 
     /// Default footprint: a quarter of the screen in each dimension, aspect-fit.
     private let defaultScreenFraction: CGFloat = 0.25
 
+    // Per-display geometry: each physical display remembers its own size and
+    // position, so switching/reconnecting monitors restores the right layout
+    // instead of clobbering a single shared frame.
+    private let framesKey = "ToucanOverlayFramesByDisplay.v1"
+    private let lastDisplayKey = "ToucanOverlayLastDisplay.v1"
+    /// Suppresses save-on-move/resize while we reposition programmatically.
+    private var isRestoring = false
+
     override init() {
         let cfg = WKWebViewConfiguration()
-        webView = WKWebView(frame: NSRect(x: 0, y: 0, width: 400, height: 400),
-                            configuration: cfg)
+        webView = KeymapWebView(frame: NSRect(x: 0, y: 0, width: 400, height: 400),
+                                configuration: cfg)
 
         panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: 400, height: 400 * aspect.height / aspect.width),
@@ -40,7 +55,15 @@ final class OverlayController: NSObject, NSWindowDelegate {
         configureWebView()
         configurePanel()
         buildContent()
+
+        // Re-apply the per-display layout when monitors are added/removed or
+        // rearranged, so the overlay stays valid on whatever screen it's on.
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(screensChanged),
+            name: NSApplication.didChangeScreenParametersNotification, object: nil)
     }
+
+    deinit { NotificationCenter.default.removeObserver(self) }
 
     // MARK: Setup
 
@@ -65,7 +88,6 @@ final class OverlayController: NSObject, NSWindowDelegate {
         panel.aspectRatio = aspect
         panel.minSize = NSSize(width: 240, height: 240 * aspect.height / aspect.width)
         panel.delegate = self
-        panel.setFrameAutosaveName(frameAutosave)
     }
 
     /// Builds: [ glass ] → contentView( webView, dragView-on-top ).
@@ -125,28 +147,113 @@ final class OverlayController: NSObject, NSWindowDelegate {
 
     func hide() { panel.orderOut(nil) }
 
-    /// Restore the saved frame, or size/position to the default (top-right).
+    /// Restore geometry for the display last used (if still connected),
+    /// otherwise for the screen the panel is currently on.
     func restoreOrPosition() {
-        if panel.setFrameUsingName(frameAutosave) { return }
-        resetPosition()
+        restore(on: preferredScreen())
     }
 
-    func resetPosition() {
-        guard let vf = (panel.screen ?? NSScreen.main)?.visibleFrame else { return }
+    func resetPosition() { resetPosition(on: currentScreen()) }
+
+    private func resetPosition(on screen: NSScreen?) {
+        guard let screen = screen ?? NSScreen.main else { return }
+        let vf = screen.visibleFrame
         let boxW = vf.width * defaultScreenFraction
         let boxH = vf.height * defaultScreenFraction
         let scale = min(boxW / aspect.width, boxH / aspect.height)
         let w = aspect.width * scale
         let h = aspect.height * scale
         let margin: CGFloat = 16
-        panel.setFrame(
-            NSRect(x: vf.maxX - w - margin, y: vf.maxY - h - margin, width: w, height: h),
-            display: true
-        )
+        let frame = NSRect(x: vf.maxX - w - margin, y: vf.maxY - h - margin, width: w, height: h)
+        setPanelFrame(frame)
+        storeFrame(frame, for: screen)
     }
 
-    // MARK: NSWindowDelegate — persist frame on move/resize.
+    // MARK: Per-display geometry
 
-    func windowDidMove(_ notification: Notification) { panel.saveFrame(usingName: frameAutosave) }
-    func windowDidResize(_ notification: Notification) { panel.saveFrame(usingName: frameAutosave) }
+    /// Restore the saved frame for `screen`, or fall back to the default there.
+    private func restore(on screen: NSScreen?) {
+        guard let screen = screen ?? NSScreen.main else { return }
+        if let f = savedFrame(for: screen), isReasonable(f, on: screen) {
+            setPanelFrame(f)
+        } else {
+            resetPosition(on: screen)
+        }
+    }
+
+    @objc private func screensChanged() {
+        guard panel.isVisible else { return }
+        restore(on: preferredScreen())
+    }
+
+    /// The display last used if it's still connected, else the current one.
+    private func preferredScreen() -> NSScreen? {
+        let last = UserDefaults.standard.string(forKey: lastDisplayKey)
+        return NSScreen.screens.first { displayKey(for: $0) == last } ?? currentScreen()
+    }
+
+    /// The screen the panel most overlaps, else main.
+    private func currentScreen() -> NSScreen? {
+        NSScreen.screens.max { overlapArea($0) < overlapArea($1) }
+            .flatMap { overlapArea($0) > 0 ? $0 : nil } ?? NSScreen.main
+    }
+
+    private func overlapArea(_ screen: NSScreen) -> CGFloat {
+        let r = screen.frame.intersection(panel.frame)
+        return r.isNull ? 0 : r.width * r.height
+    }
+
+    /// Stable per-display identity (display UUID, surviving reconnects).
+    private func displayKey(for screen: NSScreen) -> String {
+        guard let num = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")]
+                         as? NSNumber)?.uint32Value else { return "unknown" }
+        if let uuid = CGDisplayCreateUUIDFromDisplayID(num)?.takeRetainedValue() {
+            return CFUUIDCreateString(nil, uuid) as String
+        }
+        return "screen-\(num)"
+    }
+
+    private func savedFrame(for screen: NSScreen) -> NSRect? {
+        guard let frames = UserDefaults.standard.dictionary(forKey: framesKey) as? [String: String],
+              let s = frames[displayKey(for: screen)] else { return nil }
+        let r = NSRectFromString(s)
+        return r == .zero ? nil : r
+    }
+
+    private func storeFrame(_ frame: NSRect, for screen: NSScreen) {
+        var frames = UserDefaults.standard.dictionary(forKey: framesKey) as? [String: String] ?? [:]
+        frames[displayKey(for: screen)] = NSStringFromRect(frame)
+        UserDefaults.standard.set(frames, forKey: framesKey)
+        UserDefaults.standard.set(displayKey(for: screen), forKey: lastDisplayKey)
+    }
+
+    private func saveCurrentFrame() {
+        guard let screen = currentScreen() else { return }
+        storeFrame(panel.frame, for: screen)
+    }
+
+    /// A frame is usable if enough of it lands on the screen's visible area.
+    private func isReasonable(_ frame: NSRect, on screen: NSScreen) -> Bool {
+        let vis = screen.visibleFrame.intersection(frame)
+        guard !vis.isNull else { return false }
+        return vis.width * vis.height >= 0.5 * frame.width * frame.height
+    }
+
+    /// Move/resize without tripping the save-on-move/resize delegate callbacks.
+    private func setPanelFrame(_ frame: NSRect) {
+        isRestoring = true
+        panel.setFrame(frame, display: true)
+        isRestoring = false
+    }
+
+    // MARK: NSWindowDelegate — persist frame per display on user move/resize.
+
+    func windowDidMove(_ notification: Notification) {
+        guard !isRestoring else { return }
+        saveCurrentFrame()
+    }
+    func windowDidResize(_ notification: Notification) {
+        guard !isRestoring else { return }
+        saveCurrentFrame()
+    }
 }
