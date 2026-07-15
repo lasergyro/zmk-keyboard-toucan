@@ -7,7 +7,10 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "ToucanOverlay",
-            resources: [.copy("Resources/keymap.svg")]
+            resources: [
+                .copy("Resources/keymap.svg"),
+                .copy("Resources/toucan-menubar.pdf"),
+            ]
         )
     ]
 )

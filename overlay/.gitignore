@@ -2,3 +2,5 @@
 ToucanOverlay.app/
 *.xcodeproj
 .DS_Store
+# intermediate; the committed artifact is toucan-menubar.pdf
+icon/menubar.svg

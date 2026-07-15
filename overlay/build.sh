@@ -43,6 +43,11 @@ if [[ -d "$BIN_DIR/ToucanOverlay_ToucanOverlay.bundle" ]]; then
   cp -R "$BIN_DIR/ToucanOverlay_ToucanOverlay.bundle" "$CONTENTS/MacOS/"
 fi
 
+# App icon (left half of the keymap; regenerate with icon/build-icon.sh).
+if [[ -f icon/ToucanOverlay.icns ]]; then
+  cp icon/ToucanOverlay.icns "$CONTENTS/Resources/ToucanOverlay.icns"
+fi
+
 cat > "$CONTENTS/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -52,6 +57,7 @@ cat > "$CONTENTS/Info.plist" <<'PLIST'
   <key>CFBundleDisplayName</key>       <string>Toucan Overlay</string>
   <key>CFBundleIdentifier</key>        <string>dev.toucan.overlay</string>
   <key>CFBundleExecutable</key>        <string>ToucanOverlay</string>
+  <key>CFBundleIconFile</key>          <string>ToucanOverlay</string>
   <key>CFBundlePackageType</key>       <string>APPL</string>
   <key>CFBundleVersion</key>           <string>1</string>
   <key>CFBundleShortVersionString</key><string>1.0</string>

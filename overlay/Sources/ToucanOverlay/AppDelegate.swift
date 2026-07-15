@@ -29,10 +29,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "keyboard", accessibilityDescription: "Toucan Overlay")
-            button.image?.isTemplate = true
+            button.image = statusItemImage()
         }
         rebuildMenu()
+    }
+
+    /// The status-bar glyph: the left half of the keymap, as a monochrome
+    /// template (matches the app icon). Falls back to an SF Symbol.
+    private func statusItemImage() -> NSImage? {
+        if let url = Bundle.module.url(forResource: "toucan-menubar", withExtension: "pdf"),
+           let image = NSImage(contentsOf: url) {
+            image.size = NSSize(width: 16 * (image.size.width / image.size.height), height: 16)
+            image.isTemplate = true
+            return image
+        }
+        let fallback = NSImage(systemSymbolName: "keyboard", accessibilityDescription: "Toucan Overlay")
+        fallback?.isTemplate = true
+        return fallback
     }
 
     private func rebuildMenu() {
@@ -48,9 +61,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "Choose Keymap SVG…", action: #selector(chooseSVG), keyEquivalent: "")
         menu.addItem(withTitle: "Set Toggle Shortcut…", action: #selector(setToggleShortcut), keyEquivalent: "")
         menu.addItem(withTitle: "Set Hold-to-Show Shortcut…", action: #selector(setHoldShortcut), keyEquivalent: "")
-        menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         for item in menu.items { item.target = self }
+
+        // Quit is added after the retargeting loop: its action lives on NSApp,
+        // so it must target NSApp (targeting self would fail validation and
+        // grey the item out).
+        menu.addItem(.separator())
+        let quit = menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate(_:)),
+                                keyEquivalent: "q")
+        quit.target = NSApp
         statusItem.menu = menu
     }
 
