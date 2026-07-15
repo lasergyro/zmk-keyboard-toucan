@@ -27,35 +27,47 @@
 #define KEYS_R RT0 RT1 RT2 RT3 RT4 RT5  RM0 RM1 RM2 RM3 RM4 RM5  RB0 RB1 RB2 RB3 RB4 RB5
 #define THUMBS LH2 LH1 LH0 RH0 RH1 RH2
 
+/* The modifier keys of each homerow. Whitelisted as hold triggers for their own
+   hand so two or more mods still chord together; every *other* same-hand key
+   vetoes the hold, so a same-hand key never turns its neighbour into a mod. */
+#define MODS_LH LM4 LM3 LM2 LM1
+#define MODS_RH RM1 RM2 RM3 RM4
+
 /* Unicode mode */
 &uc {
     default-mode = <UC_MODE_MACOS>;
     minimum-length = <4>;
 };
 
-/* Timeless homerow mods */
+/* Timeless homerow mods.
+
+   No hold-trigger-on-release: the positional veto has to run when the next key
+   is *pressed*, not when it is released. With the release form, a homerow key
+   held past its tapping term resolves to its modifier before any veto can run,
+   which is how `hold D, press C` used to produce Cmd+C. Pressing any same-hand
+   key that is not itself a homerow mod now forces the tap instead. */
 #define MAKE_HRM(NAME, HOLD, TAP, TRIGGER_POS) \
     ZMK_HOLD_TAP(NAME, bindings = <HOLD>, <TAP>; flavor = "balanced"; \
         tapping-term-ms = <280>; quick-tap-ms = <QUICK_TAP_MS>; \
-        require-prior-idle-ms = <200>; hold-trigger-on-release; \
+        require-prior-idle-ms = <200>; \
         hold-trigger-key-positions = <TRIGGER_POS>;)
 
-MAKE_HRM(hml, &kp, &kp, KEYS_R THUMBS)  /* left-hand HRMs  */
-MAKE_HRM(hmr, &kp, &kp, KEYS_L THUMBS)  /* right-hand HRMs */
+MAKE_HRM(hml, &kp, &kp, KEYS_R THUMBS MODS_LH)  /* left-hand HRMs  */
+MAKE_HRM(hmr, &kp, &kp, KEYS_L THUMBS MODS_RH)  /* right-hand HRMs */
 
 // Generate dedicated HRMs for morphs
 #define MAKE_HRM_MORPH(NAME, HOLD, MORPH, TRIGGER_POS) \
     ZMK_HOLD_TAP(NAME, bindings = <HOLD>, <MORPH>; flavor = "balanced"; \
         tapping-term-ms = <280>; quick-tap-ms = <QUICK_TAP_MS>; \
-        require-prior-idle-ms = <200>; hold-trigger-on-release; \
+        require-prior-idle-ms = <200>; \
         hold-trigger-key-positions = <TRIGGER_POS>;)
 
-MAKE_HRM_MORPH(hmr_comma_morph, &kp, &comma_morph, KEYS_L THUMBS)
-MAKE_HRM_MORPH(hmr_dot_morph,   &kp, &dot_morph,   KEYS_L THUMBS)
-MAKE_HRM_MORPH(hmr_qmark_morph, &kp, &qmark_morph, KEYS_L THUMBS)
-MAKE_HRM_MORPH(hml_comma_morph, &kp, &comma_morph, KEYS_R THUMBS)
-MAKE_HRM_MORPH(hml_dot_morph,   &kp, &dot_morph,   KEYS_R THUMBS)
-MAKE_HRM_MORPH(hml_qmark_morph, &kp, &qmark_morph, KEYS_R THUMBS)
+MAKE_HRM_MORPH(hmr_comma_morph, &kp, &comma_morph, KEYS_L THUMBS MODS_RH)
+MAKE_HRM_MORPH(hmr_dot_morph,   &kp, &dot_morph,   KEYS_L THUMBS MODS_RH)
+MAKE_HRM_MORPH(hmr_qmark_morph, &kp, &qmark_morph, KEYS_L THUMBS MODS_RH)
+MAKE_HRM_MORPH(hml_comma_morph, &kp, &comma_morph, KEYS_R THUMBS MODS_LH)
+MAKE_HRM_MORPH(hml_dot_morph,   &kp, &dot_morph,   KEYS_R THUMBS MODS_LH)
+MAKE_HRM_MORPH(hml_qmark_morph, &kp, &qmark_morph, KEYS_R THUMBS MODS_LH)
 
 #define HMR_MORPH(MOD, TAP_BASE) &hmr_##TAP_BASE##_morph MOD 0
 #define HML_MORPH(MOD, TAP_BASE) &hml_##TAP_BASE##_morph MOD 0
@@ -79,6 +91,57 @@ SIMPLE_MORPH(sqt_morph, SFT, &kp SQT, &kp DQT)
 
 // Tap: qmark | Shift + tap: excl.
 SIMPLE_MORPH(qmark_morph, SFT, &kp QMARK, &kp EXCL)
+
+/* ── Order-sensitive homerow mods ────────────────────────────────────────────
+   Modifiers pressed first define the chord; homerow keys pressed *afterwards*
+   on the opposite hand must type normally, even when held down (a bare held
+   HRM otherwise resolves to its modifier once the tapping term expires —
+   hold-trigger-key-positions cannot express "only ever hold positionally").
+
+   Each HRM is wrapped in a mod-morph keyed on the *other* hand's modifiers:
+   while those are held the key is a plain tap, so hold LCTRL+LALT then hold J
+   gives CTRL+ALT+j (repeating), not CTRL+ALT+RSHIFT. Same-hand chords are
+   unaffected — a left HRM never morphs on left mods — so two or more mods on
+   one homerow still chord normally. keep-mods retains the triggering mods in
+   the HID report. Left HRMs emit L* mods and right HRMs R*, which is what
+   makes the two hands distinguishable here. */
+#define MODS_LEFT  (MOD_LCTL|MOD_LSFT|MOD_LALT|MOD_LGUI)
+#define MODS_RIGHT (MOD_RCTL|MOD_RSFT|MOD_RALT|MOD_RGUI)
+
+#define HRM_L(NAME, MOD, TAP) \
+    ZMK_MOD_MORPH(NAME, bindings = <&hml MOD TAP>, <&kp TAP>; \
+        mods = <MODS_RIGHT>; keep-mods = <MODS_RIGHT>;)
+#define HRM_R(NAME, MOD, TAP) \
+    ZMK_MOD_MORPH(NAME, bindings = <&hmr MOD TAP>, <&kp TAP>; \
+        mods = <MODS_LEFT>; keep-mods = <MODS_LEFT>;)
+
+/* BASE */
+HRM_L(hml_a, LCTRL, A)
+HRM_L(hml_s, LALT,  S)
+HRM_L(hml_d, LGUI,  D)
+HRM_L(hml_f, LSHFT, F)
+HRM_R(hmr_j, RSHFT, J)
+HRM_R(hmr_k, RGUI,  K)
+HRM_R(hmr_l, RALT,  L)
+ZMK_MOD_MORPH(hmr_qmark, bindings = <&hmr_qmark_morph RCTRL 0>, <&qmark_morph>;
+    mods = <MODS_LEFT>; keep-mods = <MODS_LEFT>;)
+
+/* NAV */
+HRM_L(hml_search, LCTRL, C_AC_SEARCH)
+HRM_L(hml_voice,  LALT,  C_VOICE_COMMAND)
+HRM_L(hml_wins,   LGUI,  C_AC_DESKTOP_SHOW_ALL_WINDOWS)
+HRM_R(hmr_left,   RSHFT, LEFT)
+HRM_R(hmr_down,   RGUI,  DOWN)
+HRM_R(hmr_right,  RALT,  RIGHT)
+
+/* FN */
+HRM_L(hml_f4, LALT,  F4)
+HRM_L(hml_f5, LGUI,  F5)
+HRM_L(hml_f6, LSHFT, F6)
+HRM_R(hmr_n4, RSHFT, N4)
+HRM_R(hmr_n5, RGUI,  N5)
+HRM_R(hmr_n6, RALT,  N6)
+HRM_R(hmr_n0, RCTRL, N0)
 
 
 /* Namespace macros: trigger &leader then send the namespace key so leader
@@ -117,7 +180,7 @@ ZMK_LAYER(Base,
 // ╭───────────┬───────────┬───────────┬───────────┬───────────┬───────────╮ ╭───────────┬───────────┬───────────┬───────────┬───────────┬───────────╮
     &kp TAB     &kp Q       &kp W       &kp E       &kp R       &kp T          &kp Y       &kp U       &kp I       &kp O       &kp P      &kp BSPC
 // ├───────────┼───────────┼───────────┼───────────┼───────────┼───────────┤ ├───────────┼───────────┼───────────┼───────────┼───────────┼───────────┤
-    &kp ESC  &hml LCTRL A &hml LALT S &hml LGUI D &hml LSHFT F  &kp G          &kp H    &hmr RSHFT J &hmr RGUI K &hmr RALT L HMR_MORPH(RCTRL, qmark) &kp K_APP
+    &kp ESC     &hml_a      &hml_s      &hml_d      &hml_f      &kp G          &kp H       &hmr_j      &hmr_k      &hmr_l      &hmr_qmark  &kp K_APP
 // ├───────────┼───────────┼───────────┼───────────┼───────────┼───────────┤ ├───────────┼───────────┼───────────┼───────────┼───────────┼───────────┤
     &kp LSHFT   &kp Z       &kp X       &kp C       &kp V       &kp B          &kp N       &kp M       &comma_morph   &dot_morph     &sqt_morph    &kp RSHFT
 // ╰───────────┴───────────┴───────────┼───────────┼───────────┼───────────┤ ├───────────┼───────────┼───────────┼───────────┴───────────┴───────────╯
@@ -129,7 +192,7 @@ ZMK_LAYER(Nav,
 // ╭───────────┬───────────┬───────────┬───────────┬───────────┬───────────╮ ╭───────────┬───────────┬───────────┬───────────┬───────────┬───────────╮
     ___          &kp C_VOL_DN &kp C_MUTE &kp C_VOL_UP &kp C_BRI_UP   ___       &kp PG_UP   ___         &kp UP      ___         ___         ___
 // ├───────────┼───────────┼───────────┼───────────┼───────────┼───────────┤ ├───────────┼───────────┼───────────┼───────────┼───────────┼───────────┤
-    ___          &hml LCTRL C_AC_SEARCH &hml LALT C_VOICE_COMMAND &hml LGUI C_AC_DESKTOP_SHOW_ALL_WINDOWS &kp SYS_DND    ___      &kp PG_DN   &hmr RSHFT LEFT &hmr RGUI DOWN &hmr RALT RIGHT ___         ___
+    ___         &hml_search &hml_voice  &hml_wins   &kp SYS_DND     ___        &kp PG_DN   &hmr_left   &hmr_down   &hmr_right  ___         ___
 // ├───────────┼───────────┼───────────┼───────────┼───────────┼───────────┤ ├───────────┼───────────┼───────────┼───────────┼───────────┼───────────┤
     ___          &kp C_PREV  &kp C_PP    &kp C_NEXT  &kp C_BRI_DN    ___       &kp INS     ___         ___         ___         ___         ___
 // ╰───────────┴───────────┴───────────┼───────────┼───────────┼───────────┤ ├───────────┼───────────┼───────────┼───────────┴───────────┴───────────╯
@@ -141,7 +204,7 @@ ZMK_LAYER(Fn,
 // ╭───────────┬───────────┬───────────┬───────────┬───────────┬───────────╮ ╭───────────┬───────────┬───────────┬───────────┬───────────┬───────────╮
     ___         ___          &kp F1      &kp F2      &kp F3      &kp F10       ___         &kp N1      &kp N2      &kp N3      ___            ___
 // ├───────────┼───────────┼───────────┼───────────┼───────────┼───────────┤ ├───────────┼───────────┼───────────┼───────────┼───────────┼───────────┤
-    ___         ___          &hml LALT F4 &hml LGUI F5 &hml LSHFT F6 &kp F11  ___         &hmr RSHFT N4 &hmr RGUI N5 &hmr RALT N6 &hmr RCTRL N0 ___
+    ___         ___         &hml_f4     &hml_f5     &hml_f6     &kp F11        ___         &hmr_n4     &hmr_n5     &hmr_n6     &hmr_n0     ___
 // ├───────────┼───────────┼───────────┼───────────┼───────────┼───────────┤ ├───────────┼───────────┼───────────┼───────────┼───────────┼───────────┤
     ___         ___          &kp F7      &kp F8      &kp F9      &kp F12       ___         &kp N7      &kp N8      &kp N9      ___            ___
 // ╰───────────┴───────────┴───────────┼───────────┼───────────┼───────────┤ ├───────────┼───────────┼───────────┼───────────┴───────────┴───────────╯

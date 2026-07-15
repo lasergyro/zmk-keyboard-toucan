@@ -52,8 +52,9 @@ To **pair a new device**: enter the SYS leader namespace with the `LB1 + LB0` co
 For exact key assignments, see  "Config Files".
 
 - **Layers** — defined in [config/toucan.keymap](config/toucan.keymap). See Architecture for indices.
-- **Homerow mods** — timeless HRMs on the home row (GUI–ALT–SHIFT–CTRL, pinky to index, symmetric). Uses `MAKE_HRM` / `ZMK_HOLD_TAP` from zmk-helpers.
-- **Combos** — two-key horizontal and vertical combos in `config/combos.dtsi`. Produce symbols, navigation shortcuts, and namespace-combo triggers.
+- **Homerow mods** — timeless HRMs on the home row (GUI–ALT–SHIFT–CTRL, pinky to index, symmetric). Uses `MAKE_HRM` / `ZMK_HOLD_TAP` from zmk-helpers. Modifiers chord on one hand; homerow keys pressed *after* modifiers type normally, even when held (press order decides what is a modifier).
+- **Combos** — two-key horizontal and vertical combos in `config/combos.dtsi`. Produce symbols, navigation shortcuts, and namespace-combo triggers. The four combos that sit on adjacent homerow-mod pairs are hold-taps: tap → combo, hold → both modifiers.
+- **Precedence** — layers, combos, homerow mods and the leader all compete for the same keypress. [docs/keymap_behavior.md](docs/keymap_behavior.md) documents who wins, the timing windows, and the known rough edges.
 - **Leader sequences** — three namespaces triggered by combo macros (`greek_ns`, `german_ns`, `sys_ns`). `&leader` is never invoked bare. See [config/leader.dtsi](config/leader.dtsi) and [config/leader_greek.dtsi](config/leader_greek.dtsi) for sequences.
 - **Visualization** — [draw/config.yaml](draw/config.yaml) is the single source of truth for annotation slot positions and colors; `draw/generate-keymaps.rb` derives all layer/leader CSS from it. Run `./draw-keymap.sh` to regenerate [draw/keymap.svg](draw/keymap.svg).
 
@@ -261,6 +262,8 @@ The `config/west.yml` declares multiple upstream dependencies which currently tr
 **Knowledge Item Reference**: The core commands and workflow constraints for this project have been extracted to a [Knowledge Item](.gemini/knowledge/toucan_basic_commands/artifacts/commands.md), and are repeated below.
 
 **Dev logs**: for each specific issue keep a log/notes in a document in `plans/[date]-[topic].md`; keep it up to date as you resolve the issue.
+
+**Markdown prose**: do not hard-wrap paragraphs — write each paragraph (and each list item) as a single unbroken line and let the editor soft-wrap. This keeps diffs to whole edited sentences rather than reflow noise.
 
 **Generic Patcher**: if normal edit tools are not the first choice, use the generic patching tool `scripts/patcher.py` to make targeted changes to files without needing to write custom Python scripts each time. You can invoke it like `pixi run python scripts/patcher.py <file> --search "<search_text>" --replace "<replace_text>"`.
 
