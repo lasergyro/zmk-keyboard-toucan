@@ -6,6 +6,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let overlay = OverlayController()
     private let recorder = ShortcutRecorder()
 
+    /// Kept around so the menu can re-read the system's login-item state each
+    /// time it opens (the user may have flipped it in System Settings).
+    private var loginItem: NSMenuItem?
+
     private var toggleShortcut = Shortcut.load(forKey: Shortcut.toggleKey, default: .toggleDefault)
     private var holdShortcut = Shortcut.load(forKey: Shortcut.holdKey, default: .holdDefault)
     private var toggleKeyID: UInt32?
@@ -20,7 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupStatusItem()
         overlay.restoreOrPosition()
         overlay.reload()
-        overlay.show()                           // shown by default (top-right)
+        // Starts hidden — bring it up with the toggle shortcut or the menu.
         registerHotKeys()
     }
 
@@ -61,7 +65,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "Choose Keymap SVG…", action: #selector(chooseSVG), keyEquivalent: "")
         menu.addItem(withTitle: "Set Toggle Shortcut…", action: #selector(setToggleShortcut), keyEquivalent: "")
         menu.addItem(withTitle: "Set Hold-to-Show Shortcut…", action: #selector(setHoldShortcut), keyEquivalent: "")
+        menu.addItem(.separator())
+        let login = menu.addItem(withTitle: "Start at Login",
+                                 action: #selector(toggleStartAtLogin), keyEquivalent: "")
+        loginItem = login
         for item in menu.items { item.target = self }
+        refreshLoginItemState()
 
         // Quit is added after the retargeting loop: its action lives on NSApp,
         // so it must target NSApp (targeting self would fail validation and
@@ -70,7 +79,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let quit = menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate(_:)),
                                 keyEquivalent: "q")
         quit.target = NSApp
+        menu.delegate = self
         statusItem.menu = menu
+    }
+
+    /// Mirrors the system's current login-item state into the menu item.
+    private func refreshLoginItemState() {
+        loginItem?.state = LoginItem.isEnabled ? .on : .off
     }
 
     // MARK: Hotkeys
@@ -129,5 +144,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.registerHotKeys()
             self.rebuildMenu()
         }
+    }
+
+    @objc private func toggleStartAtLogin() {
+        let wantEnabled = !LoginItem.isEnabled
+        if let error = LoginItem.setEnabled(wantEnabled) {
+            alert("Couldn’t \(wantEnabled ? "enable" : "disable") Start at Login",
+                  error.localizedDescription)
+        } else if wantEnabled && LoginItem.requiresApproval {
+            // Registration succeeded but macOS is holding it for the user's
+            // approval, so send them to the pane where they can grant it.
+            alert("Start at Login needs your approval",
+                  "Enable “Toucan Overlay” under Login Items in System Settings.")
+            LoginItem.openSystemSettings()
+        }
+        refreshLoginItemState()
+    }
+
+    private func alert(_ message: String, _ informative: String) {
+        let a = NSAlert()
+        a.messageText = message
+        a.informativeText = informative
+        NSApp.activate(ignoringOtherApps: true)
+        a.runModal()
+    }
+}
+
+extension AppDelegate: NSMenuDelegate {
+    /// The login-item state can change outside the app (System Settings), so
+    /// re-read it every time the menu is opened rather than trusting our copy.
+    func menuNeedsUpdate(_ menu: NSMenu) { refreshLoginItemState() }
+}
+
+extension AppDelegate: NSMenuItemValidation {
+    func validateMenuItem(_ item: NSMenuItem) -> Bool {
+        item.action == #selector(toggleStartAtLogin) ? LoginItem.isSupported : true
     }
 }

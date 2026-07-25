@@ -8,9 +8,13 @@ floating **liquid-glass** overlay — handy while training on the layout.
   * **Toggle** (default **⌥⌘K**) — show/hide the overlay.
   * **Hold to show** (default **⌥⌘L**) — the overlay is visible only while the
     keys are held, then hides on release (a pinned overlay stays put).
-* Shows **by default in the top-right corner**, sized to ~a quarter of the
-  screen. **Drag anywhere** to move it; **resize from the edges** with a locked
-  aspect ratio. Nothing inside is selectable.
+* Starts **hidden** — bring it up with the toggle shortcut or the menu. It
+  first appears in the **top-right corner**, sized to ~a quarter of the screen.
+  **Drag anywhere** to move it; **resize from the edges** with a locked aspect
+  ratio. Nothing inside is selectable.
+* **Start at Login** (menu toggle) registers the app with macOS via
+  `SMAppService`, so it also shows up in System Settings › General › Login
+  Items — flipping it there and in the menu stay in sync.
 * Renders [`draw/keymap.svg`](../draw/keymap.svg), post-processed on the fly to
   **drop the bottom footer/watermark label** and make the background a
   semi-hazy frosted **liquid glass** (`NSGlassEffectView` on macOS 26+,
@@ -45,6 +49,7 @@ WebKit and the status item behave), ad-hoc signs it, and copies the current
 | **Choose Keymap SVG…** | point at a different SVG file |
 | **Set Toggle Shortcut…** | record a new toggle shortcut (needs a modifier) |
 | **Set Hold-to-Show Shortcut…** | record a new hold-to-show shortcut (needs a modifier) |
+| **Start at Login** | check to launch the app automatically when you log in |
 | **Quit** | quit |
 
 ## Which SVG is shown?
@@ -77,6 +82,11 @@ Swift-package resource.
   monitor remembers its own size and location (keyed by display UUID), so
   switching or reconnecting screens restores the right layout instead of
   landing off-screen. **Reset Position** re-centers on the current display.
+* **Start at Login** registers the bundle at its current path, so re-enable it
+  after moving `ToucanOverlay.app` (e.g. into `/Applications`). It's greyed out
+  when the binary is run outside the `.app` bundle, since `launchd` has nothing
+  to point at. If macOS marks the registration as needing approval, the app
+  opens the Login Items pane for you.
 * The post-processing (footer removal + transparent/liquid-glass background)
   lives in `Sources/ToucanOverlay/KeymapSVG.swift` and runs at load, so it
   always reflects the latest generated keymap without a separate export step.
