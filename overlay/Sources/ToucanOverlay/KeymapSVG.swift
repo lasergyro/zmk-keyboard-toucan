@@ -54,17 +54,14 @@ enum KeymapSVG {
     }
 }
 
-/// Resolves the source keymap.svg. Prefers a live file (so the overlay reflects
-/// re-generated keymaps automatically), falling back to the bundled copy.
+/// Resolves the source keymap.svg. Prefers the repo's live file (so the overlay
+/// reflects re-generated keymaps automatically), falling back to the bundled
+/// copy.
 enum KeymapSource {
-
-    static let defaultsKey = "keymapSVGPath"
 
     static func resolvedPath() -> String? {
         let fm = FileManager.default
         if let p = ProcessInfo.processInfo.environment["TOUCAN_KEYMAP_SVG"],
-           fm.fileExists(atPath: p) { return p }
-        if let p = UserDefaults.standard.string(forKey: defaultsKey),
            fm.fileExists(atPath: p) { return p }
         if let p = discoverRepoSVG() { return p }
         return nil

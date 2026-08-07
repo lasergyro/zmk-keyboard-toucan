@@ -60,11 +60,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                      action: #selector(toggleOverlay), keyEquivalent: "")
         menu.addItem(withTitle: "Hold to Show  (\(holdShortcut.display))",
                      action: #selector(toggleOverlay), keyEquivalent: "")
-        menu.addItem(withTitle: "Reset Position (top-right)",
+        menu.addItem(withTitle: "Reset Position",
                      action: #selector(resetPosition), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Reload Keymap", action: #selector(reloadKeymap), keyEquivalent: "")
-        menu.addItem(withTitle: "Choose Keymap SVG…", action: #selector(chooseSVG), keyEquivalent: "")
         menu.addItem(withTitle: "Set Toggle Shortcut…", action: #selector(setToggleShortcut), keyEquivalent: "")
         menu.addItem(withTitle: "Set Hold-to-Show Shortcut…", action: #selector(setHoldShortcut), keyEquivalent: "")
         menu.addItem(.separator())
@@ -115,18 +114,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleOverlay() { overlay.toggle() }
     @objc private func resetPosition() { overlay.resetPosition(); overlay.show() }
     @objc private func reloadKeymap() { overlay.reload() }
-
-    @objc private func chooseSVG() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.svg]
-        panel.allowsMultipleSelection = false
-        panel.message = "Choose the keymap SVG to display"
-        NSApp.activate(ignoringOtherApps: true)
-        if panel.runModal() == .OK, let url = panel.url {
-            UserDefaults.standard.set(url.path, forKey: KeymapSource.defaultsKey)
-            overlay.reload()
-        }
-    }
 
     @objc private func setToggleShortcut() {
         recorder.begin { [weak self] captured in

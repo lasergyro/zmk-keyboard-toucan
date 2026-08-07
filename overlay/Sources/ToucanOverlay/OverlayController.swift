@@ -31,8 +31,9 @@ final class OverlayController: NSObject, NSWindowDelegate {
     private let corner: CGFloat = 20
     private let resizeMargin: CGFloat = 8                 // outer ring reserved for edge-resize
 
-    /// Default footprint: a quarter of the screen in each dimension, aspect-fit.
-    private let defaultScreenFraction: CGFloat = 0.25
+    /// Default footprint: aspect-fit into 4/5 of the visible screen, so the
+    /// overlay fills 4/5 of whichever axis constrains it first, and centred.
+    private let defaultScreenFraction: CGFloat = 0.8
 
     // Per-display geometry: each physical display remembers its own size and
     // position, so switching/reconnecting monitors restores the right layout
@@ -164,8 +165,7 @@ final class OverlayController: NSObject, NSWindowDelegate {
         let scale = min(boxW / aspect.width, boxH / aspect.height)
         let w = aspect.width * scale
         let h = aspect.height * scale
-        let margin: CGFloat = 16
-        let f = NSRect(x: vf.maxX - w - margin, y: vf.maxY - h - margin, width: w, height: h)
+        let f = NSRect(x: vf.midX - w / 2, y: vf.midY - h / 2, width: w, height: h)
         setPanelFrame(f)
         storeFrame(f, for: screen)
     }

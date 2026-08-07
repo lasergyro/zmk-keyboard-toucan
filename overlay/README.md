@@ -9,9 +9,9 @@ floating **liquid-glass** overlay — handy while training on the layout.
   * **Hold to show** (default **⌥⌘L**) — the overlay is visible only while the
     keys are held, then hides on release (a pinned overlay stays put).
 * Starts **hidden** — bring it up with the toggle shortcut or the menu. It
-  first appears in the **top-right corner**, sized to ~a quarter of the screen.
-  **Drag anywhere** to move it; **resize from the edges** with a locked aspect
-  ratio. Nothing inside is selectable.
+  first appears **centred**, filling 4/5 of whichever screen axis constrains it
+  first. **Drag anywhere** to move it; **resize from the edges** with a locked
+  aspect ratio. Nothing inside is selectable.
 * **Start at Login** (menu toggle) registers the app with macOS via
   `SMAppService`, so it also shows up in System Settings › General › Login
   Items — flipping it there and in the menu stay in sync.
@@ -48,9 +48,8 @@ and ad-hoc signs the result.
 |------|--------|
 | **Toggle Overlay** | show/hide the overlay (also the toggle shortcut) |
 | **Hold to Show** | shows the current hold-to-show shortcut |
-| **Reset Position (top-right)** | move it back to the default corner |
+| **Reset Position** | re-centre it at 4/5 of the current screen |
 | **Reload Keymap** | re-read the SVG (after re-running `draw-keymap.sh`) |
-| **Choose Keymap SVG…** | point at a different SVG file |
 | **Set Toggle Shortcut…** | record a new toggle shortcut (needs a modifier) |
 | **Set Hold-to-Show Shortcut…** | record a new hold-to-show shortcut (needs a modifier) |
 | **Start at Login** | check to launch the app automatically when you log in |
@@ -61,11 +60,10 @@ and ad-hoc signs the result.
 Resolved in this order:
 
 1. `TOUCAN_KEYMAP_SVG` environment variable, if set.
-2. The path chosen via **Choose Keymap SVG…** (stored in `UserDefaults`).
-3. Auto-discovered `draw/keymap.svg` by walking up from the app's location —
+2. Auto-discovered `draw/keymap.svg` by walking up from the app's location —
    so when `ToucanOverlay.app` lives inside this repo it tracks the **live**
    drawing. Re-run `../draw-keymap.sh` then **Reload Keymap** to refresh.
-4. The copy bundled into the app at build time (fallback).
+3. The copy bundled into the app at build time (fallback).
 
 ## How it's drawn
 
