@@ -69,6 +69,18 @@ cat > "$CONTENTS/Info.plist" <<'PLIST'
 </plist>
 PLIST
 
+# Pre-render the keymap into a vector PDF, shipped alongside the SVG it came
+# from. This is the only time WebKit runs: the assembled app draws the PDF and
+# never starts a web view (see KeymapRenderer.swift). Needs a GUI session — if
+# it can't run, the app renders (and caches) the PDF itself on first launch.
+if [[ -f ../draw/keymap.svg ]]; then
+  echo "==> pre-rendering keymap.pdf"
+  cp ../draw/keymap.svg "$CONTENTS/Resources/keymap.svg"
+  "$CONTENTS/MacOS/ToucanOverlay" --render-pdf ../draw/keymap.svg "$CONTENTS/Resources/keymap.pdf" \
+    || { echo "    (skipped: render failed — the app will render on first launch)"
+         rm -f "$CONTENTS/Resources/keymap.svg"; }
+fi
+
 # Ad-hoc sign so WebKit's helper processes launch cleanly.
 codesign --force --deep --sign - "$APP" >/dev/null 2>&1 || true
 

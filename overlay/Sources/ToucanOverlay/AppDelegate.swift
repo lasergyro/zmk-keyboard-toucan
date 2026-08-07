@@ -22,9 +22,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)   // menu-bar agent, no Dock icon
         setupStatusItem()
+        // Starts hidden — bring it up with the toggle shortcut or the menu.
+        // Neither the panel nor a renderer exists until then; this only works
+        // out where the panel will open and loads the pre-rendered keymap.
         overlay.restoreOrPosition()
         overlay.reload()
-        // Starts hidden — bring it up with the toggle shortcut or the menu.
         registerHotKeys()
     }
 

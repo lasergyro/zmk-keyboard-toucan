@@ -8,8 +8,9 @@ import Foundation
 ///     the whole panel while keeping the legends readable
 enum KeymapSVG {
 
-    /// Aspect ratio of the source drawing (used to lock the window aspect).
-    static let aspect = CGSize(width: 844, height: 693)
+    /// Natural size of the source drawing — the render size for the PDF, and
+    /// the ratio the window's aspect is locked to.
+    static let size = CGSize(width: 844, height: 693)
 
     static func process(_ raw: String) -> String {
         var s = raw
@@ -39,18 +40,14 @@ enum KeymapSVG {
         return s
     }
 
-    /// Wraps the processed SVG in a transparent, edge-to-edge HTML page.
+    /// Wraps the processed SVG in a transparent, edge-to-edge HTML page — the
+    /// input to the one-off PDF render in `KeymapRenderer`.
     static func html(svg: String) -> String {
         """
         <!doctype html><html><head><meta charset="utf-8">
         <style>
           html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
-          * {
-            -webkit-user-select: none; user-select: none;
-            -webkit-touch-callout: none; cursor: default;
-          }
-          svg.keymap { display: block; width: 100% !important; height: 100% !important;
-                       pointer-events: none; }
+          svg.keymap { display: block; width: 100% !important; height: 100% !important; }
         </style></head>
         <body>\(svg)</body></html>
         """
@@ -90,10 +87,23 @@ enum KeymapSource {
         if let p = resolvedPath(), let s = try? String(contentsOfFile: p, encoding: .utf8) {
             return s
         }
-        if let u = Bundle.module.url(forResource: "keymap", withExtension: "svg"),
-           let s = try? String(contentsOf: u, encoding: .utf8) {
-            return s
-        }
+        if let s = bundledSVG() { return s }
         return "<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"keymap\" viewBox=\"0 0 844 693\"><text x=\"30\" y=\"40\" fill=\"#eadbb0\" font-family=\"monospace\">keymap.svg not found</text></svg>"
+    }
+
+    /// The copy shipped inside the app — also what the build-time PDF was
+    /// rendered from, so matching it means that PDF can be used as-is.
+    static func bundledSVG() -> String? {
+        guard let u = bundledURL("keymap", "svg") else { return nil }
+        return try? String(contentsOf: u, encoding: .utf8)
+    }
+
+    /// Bundled-resource lookup, `.app` first. `Bundle.module` can resolve to a
+    /// leftover SwiftPM bundle under `.build/` — fine when running straight out
+    /// of the build directory, but stale for an assembled app, which carries
+    /// the matched keymap.svg/keymap.pdf pair in `Contents/Resources`.
+    static func bundledURL(_ name: String, _ ext: String) -> URL? {
+        Bundle.main.url(forResource: name, withExtension: ext)
+            ?? Bundle.module.url(forResource: name, withExtension: ext)
     }
 }

@@ -15,11 +15,14 @@ floating **liquid-glass** overlay — handy while training on the layout.
 * **Start at Login** (menu toggle) registers the app with macOS via
   `SMAppService`, so it also shows up in System Settings › General › Login
   Items — flipping it there and in the menu stay in sync.
-* Renders [`draw/keymap.svg`](../draw/keymap.svg), post-processed on the fly to
-  **drop the bottom footer/watermark label** and make the background a
-  semi-hazy frosted **liquid glass** (`NSGlassEffectView` on macOS 26+,
-  falling back to `NSVisualEffectView`) so it floats unobtrusively over
-  whatever you're typing in.
+* Renders [`draw/keymap.svg`](../draw/keymap.svg), post-processed to **drop the
+  bottom footer/watermark label** and make the background a semi-hazy frosted
+  **liquid glass** (`NSGlassEffectView` on macOS 26+, falling back to
+  `NSVisualEffectView`) so it floats unobtrusively over whatever you're typing
+  in.
+* **Costs ~11 MB idle.** The drawing is pre-rendered to a **vector PDF** at
+  build time, so the running app is an image view — it never starts WebKit, and
+  the window itself is only built the first time you show the overlay.
 * The global hotkeys use Carbon `RegisterEventHotKey` — **no Accessibility
   permission required**.
 
@@ -34,9 +37,10 @@ cd overlay
 ./build.sh --debug    # debug build
 ```
 
-The script assembles `ToucanOverlay.app` (a proper `LSUIElement` bundle so
-WebKit and the status item behave), ad-hoc signs it, and copies the current
-`draw/keymap.svg` in as a fallback.
+The script assembles `ToucanOverlay.app` (a proper `LSUIElement` bundle so the
+status item behaves), copies the current `draw/keymap.svg` in as a fallback,
+pre-renders it to `keymap.pdf` (`ToucanOverlay --render-pdf in.svg out.pdf`),
+and ad-hoc signs the result.
 
 ## Menu
 
@@ -63,6 +67,23 @@ Resolved in this order:
    drawing. Re-run `../draw-keymap.sh` then **Reload Keymap** to refresh.
 4. The copy bundled into the app at build time (fallback).
 
+## How it's drawn
+
+WebKit is the only renderer that gets the generated SVG right (the SVG support
+in `NSImage` ignores most of keymap-drawer's stylesheet), but a resident
+`WKWebView` costs three XPC helper processes — ~70 MB for a drawing that never
+changes. So the SVG is rendered to a **vector PDF exactly once**, and the app
+displays that: sharp at any window size and on any display, unlike a
+pre-rendered bitmap, and ~60 KB instead of tens of MB.
+
+The PDF comes from, in order: the copy `build.sh` rendered into the bundle → a
+content-keyed cache in `~/Library/Caches/dev.toucan.overlay/` → a fresh render.
+Only the last one needs WebKit, and it runs as a short-lived
+`--render-pdf` **child process**, because WebKit's GPU and Networking helpers
+outlive the web view that started them and would otherwise stay attached to the
+menu-bar app for the rest of the session. In practice you hit it only after
+changing the keymap without rebuilding the app — once per new drawing.
+
 ## Icon
 
 The menu-bar glyph and the `.app` icon are both the **left half of the keymap**
@@ -88,5 +109,9 @@ Swift-package resource.
   to point at. If macOS marks the registration as needing approval, the app
   opens the Login Items pane for you.
 * The post-processing (footer removal + transparent/liquid-glass background)
-  lives in `Sources/ToucanOverlay/KeymapSVG.swift` and runs at load, so it
-  always reflects the latest generated keymap without a separate export step.
+  lives in `Sources/ToucanOverlay/KeymapSVG.swift` and runs as part of the
+  render, so it always reflects the latest generated keymap without a separate
+  export step.
+* Memory: ~11 MB with the overlay never shown, ~19 MB once it has been (the
+  window's backing store). The panel is kept after the first show so toggling
+  and hold-to-show stay instant.

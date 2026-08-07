@@ -1,31 +1,33 @@
 import AppKit
-import WebKit
-
-/// Keymap web view that suppresses WebKit's default right-click menu (Reload,
-/// Back/Forward, …) — meaningless on a non-interactive overlay.
-private final class KeymapWebView: WKWebView {
-    override func willOpenMenu(_ menu: NSMenu, with event: NSEvent) {
-        menu.removeAllItems()   // empty menu → nothing pops up
-    }
-}
 
 /// Transparent overlay that sits above the keymap and turns any click-drag into
-/// a window move. Because it covers the web view, the web content never
-/// receives mouse events — so nothing inside is selectable either.
+/// a window move. Because it covers the image, nothing underneath ever receives
+/// mouse events.
 private final class DragView: NSView {
     override func mouseDown(with event: NSEvent) { window?.performDrag(with: event) }
     override var mouseDownCanMoveWindow: Bool { true }
     override var acceptsFirstResponder: Bool { false }
     override func resetCursorRects() { addCursorRect(bounds, cursor: .openHand) }
+    /// The panel has no menu of its own; suppress the inherited one.
+    override func menu(for event: NSEvent) -> NSMenu? { nil }
 }
 
 /// Borderless, floating, non-activating glass panel that renders the keymap.
 /// Drag anywhere to move; resize from the edges with a locked aspect ratio.
+///
+/// The panel is built the first time the overlay is shown, and the keymap it
+/// displays is a vector PDF image (see `KeymapRenderer`) — an app that has been
+/// launched but never asked for the overlay holds neither a window nor a
+/// renderer.
 final class OverlayController: NSObject, NSWindowDelegate {
 
-    let panel: NSPanel
-    private let webView: WKWebView
-    private let aspect = KeymapSVG.aspect
+    private var panel: NSPanel?
+    private var imageView: NSImageView?
+
+    /// The rendered keymap, kept across hides so showing again is instant.
+    private var keymap: NSImage?
+
+    private let aspect = KeymapSVG.size
     private let corner: CGFloat = 20
     private let resizeMargin: CGFloat = 8                 // outer ring reserved for edge-resize
 
@@ -37,25 +39,13 @@ final class OverlayController: NSObject, NSWindowDelegate {
     // instead of clobbering a single shared frame.
     private let framesKey = "ToucanOverlayFramesByDisplay.v1"
     private let lastDisplayKey = "ToucanOverlayLastDisplay.v1"
+    /// Where the panel is (or will be, before it exists).
+    private var frame: NSRect = .zero
     /// Suppresses save-on-move/resize while we reposition programmatically.
     private var isRestoring = false
 
     override init() {
-        let cfg = WKWebViewConfiguration()
-        webView = KeymapWebView(frame: NSRect(x: 0, y: 0, width: 400, height: 400),
-                                configuration: cfg)
-
-        panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 400, height: 400 * aspect.height / aspect.width),
-            styleMask: [.borderless, .resizable, .nonactivatingPanel],
-            backing: .buffered, defer: false
-        )
         super.init()
-
-        configureWebView()
-        configurePanel()
-        buildContent()
-
         // Re-apply the per-display layout when monitors are added/removed or
         // rearranged, so the overlay stays valid on whatever screen it's on.
         NotificationCenter.default.addObserver(
@@ -65,42 +55,47 @@ final class OverlayController: NSObject, NSWindowDelegate {
 
     deinit { NotificationCenter.default.removeObserver(self) }
 
-    // MARK: Setup
+    // MARK: Panel construction (on first show)
 
-    private func configureWebView() {
-        webView.setValue(false, forKey: "drawsBackground")   // transparent → glass shows through
-        if #available(macOS 12.0, *) { webView.underPageBackgroundColor = .clear }
-        webView.wantsLayer = true
-        webView.layer?.backgroundColor = NSColor.clear.cgColor
-    }
+    private func makePanelIfNeeded() {
+        guard panel == nil else { return }
+        if frame == .zero { restoreOrPosition() }
 
-    private func configurePanel() {
-        panel.level = .floating
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-        panel.isFloatingPanel = true
-        panel.hidesOnDeactivate = false
-        panel.isMovableByWindowBackground = true
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.hasShadow = true
+        let p = NSPanel(contentRect: frame,
+                        styleMask: [.borderless, .resizable, .nonactivatingPanel],
+                        backing: .buffered, defer: false)
+        p.level = .floating
+        p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        p.isFloatingPanel = true
+        p.hidesOnDeactivate = false
+        p.isMovableByWindowBackground = true
+        p.isOpaque = false
+        p.backgroundColor = .clear
+        p.hasShadow = true
         // Dark glass reads better under the dark (gruvbox) keymap.
-        panel.appearance = NSAppearance(named: .darkAqua)
-        panel.aspectRatio = aspect
-        panel.minSize = NSSize(width: 240, height: 240 * aspect.height / aspect.width)
-        panel.delegate = self
+        p.appearance = NSAppearance(named: .darkAqua)
+        p.aspectRatio = aspect
+        p.minSize = NSSize(width: 240, height: 240 * aspect.height / aspect.width)
+        p.delegate = self
+        p.contentView = buildContent(size: frame.size)
+        panel = p
+        setPanelFrame(frame)
     }
 
-    /// Builds: [ glass ] → contentView( webView, dragView-on-top ).
-    private func buildContent() {
-        let content = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 328))
+    /// Builds: [ glass ] → contentView( imageView, dragView-on-top ).
+    private func buildContent(size: NSSize) -> NSView {
+        let content = NSView(frame: NSRect(origin: .zero, size: size))
         content.wantsLayer = true
         content.layer?.cornerRadius = corner
         content.layer?.masksToBounds = true
         content.autoresizingMask = [.width, .height]
 
-        webView.frame = content.bounds
-        webView.autoresizingMask = [.width, .height]
-        content.addSubview(webView)
+        let image = NSImageView(frame: content.bounds)
+        image.imageScaling = .scaleAxesIndependently   // the panel's aspect is locked to the drawing's
+        image.image = keymap
+        image.autoresizingMask = [.width, .height]
+        content.addSubview(image)
+        imageView = image
 
         // Drag layer covers everything except the outer resize ring.
         let drag = DragView(frame: content.bounds.insetBy(dx: resizeMargin, dy: resizeMargin))
@@ -112,40 +107,46 @@ final class OverlayController: NSObject, NSWindowDelegate {
             glass.style = .regular
             glass.cornerRadius = corner
             glass.contentView = content
-            panel.contentView = glass
-        } else {
-            let host = NSView(frame: content.frame)
-            host.wantsLayer = true
-            host.layer?.cornerRadius = corner
-            host.layer?.masksToBounds = true
-            let vev = NSVisualEffectView(frame: host.bounds)
-            vev.material = .hudWindow
-            vev.blendingMode = .behindWindow
-            vev.state = .active
-            vev.autoresizingMask = [.width, .height]
-            host.addSubview(vev)
-            content.frame = host.bounds
-            host.addSubview(content)
-            panel.contentView = host
+            return glass
         }
+        let host = NSView(frame: content.frame)
+        host.wantsLayer = true
+        host.layer?.cornerRadius = corner
+        host.layer?.masksToBounds = true
+        let vev = NSVisualEffectView(frame: host.bounds)
+        vev.material = .hudWindow
+        vev.blendingMode = .behindWindow
+        vev.state = .active
+        vev.autoresizingMask = [.width, .height]
+        host.addSubview(vev)
+        content.frame = host.bounds
+        host.addSubview(content)
+        return host
     }
 
     // MARK: Actions
 
+    /// Re-reads the keymap SVG and re-renders it if its content changed.
     func reload() {
-        let processed = KeymapSVG.process(KeymapSource.load())
-        webView.loadHTMLString(KeymapSVG.html(svg: processed), baseURL: nil)
+        KeymapRenderer.image(for: KeymapSource.load()) { [weak self] image in
+            guard let self, let image else { return }
+            self.keymap = image
+            self.imageView?.image = image
+        }
     }
 
-    var isVisible: Bool { panel.isVisible }
+    var isVisible: Bool { panel?.isVisible ?? false }
 
     func toggle() {
-        if panel.isVisible { hide() } else { show() }
+        if isVisible { hide() } else { show() }
     }
 
-    func show() { panel.orderFrontRegardless() }
+    func show() {
+        makePanelIfNeeded()
+        panel?.orderFrontRegardless()
+    }
 
-    func hide() { panel.orderOut(nil) }
+    func hide() { panel?.orderOut(nil) }
 
     /// Restore geometry for the display last used (if still connected),
     /// otherwise for the screen the panel is currently on.
@@ -164,9 +165,9 @@ final class OverlayController: NSObject, NSWindowDelegate {
         let w = aspect.width * scale
         let h = aspect.height * scale
         let margin: CGFloat = 16
-        let frame = NSRect(x: vf.maxX - w - margin, y: vf.maxY - h - margin, width: w, height: h)
-        setPanelFrame(frame)
-        storeFrame(frame, for: screen)
+        let f = NSRect(x: vf.maxX - w - margin, y: vf.maxY - h - margin, width: w, height: h)
+        setPanelFrame(f)
+        storeFrame(f, for: screen)
     }
 
     // MARK: Per-display geometry
@@ -182,7 +183,7 @@ final class OverlayController: NSObject, NSWindowDelegate {
     }
 
     @objc private func screensChanged() {
-        guard panel.isVisible else { return }
+        guard isVisible else { return }
         restore(on: preferredScreen())
     }
 
@@ -192,14 +193,14 @@ final class OverlayController: NSObject, NSWindowDelegate {
         return NSScreen.screens.first { displayKey(for: $0) == last } ?? currentScreen()
     }
 
-    /// The screen the panel most overlaps, else main.
+    /// The screen the overlay most overlaps, else main.
     private func currentScreen() -> NSScreen? {
         NSScreen.screens.max { overlapArea($0) < overlapArea($1) }
             .flatMap { overlapArea($0) > 0 ? $0 : nil } ?? NSScreen.main
     }
 
     private func overlapArea(_ screen: NSScreen) -> CGFloat {
-        let r = screen.frame.intersection(panel.frame)
+        let r = screen.frame.intersection(frame)
         return r.isNull ? 0 : r.width * r.height
     }
 
@@ -228,8 +229,9 @@ final class OverlayController: NSObject, NSWindowDelegate {
     }
 
     private func saveCurrentFrame() {
-        guard let screen = currentScreen() else { return }
-        storeFrame(panel.frame, for: screen)
+        guard let panel, let screen = currentScreen() else { return }
+        frame = panel.frame
+        storeFrame(frame, for: screen)
     }
 
     /// A frame is usable if enough of it lands on the screen's visible area.
@@ -240,7 +242,10 @@ final class OverlayController: NSObject, NSWindowDelegate {
     }
 
     /// Move/resize without tripping the save-on-move/resize delegate callbacks.
+    /// Before the panel exists this just records where it will open.
     private func setPanelFrame(_ frame: NSRect) {
+        self.frame = frame
+        guard let panel else { return }
         isRestoring = true
         panel.setFrame(frame, display: true)
         isRestoring = false
