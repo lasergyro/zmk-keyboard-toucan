@@ -16,7 +16,7 @@
         }; \
     };
 
-/* German umlauts — E namespace (Q+W combo → &leader + E, then A/O/U/S) */
+/* German umlauts — E namespace */
 ZMK_LEADER_SEQUENCE(de_ae,      &txtsym TOUCAN_TEXT_SYMBOL_DE_AE,         E A)  // ä
 ZMK_LEADER_SEQUENCE(de_oe,      &txtsym TOUCAN_TEXT_SYMBOL_DE_OE,         E O)  // ö
 ZMK_LEADER_SEQUENCE(de_ue,      &txtsym TOUCAN_TEXT_SYMBOL_DE_UE,         E U)  // ü
@@ -25,7 +25,7 @@ ZMK_LEADER_SEQUENCE(de_eszett,  &txtsym TOUCAN_TEXT_SYMBOL_DE_SS,         E S)  
 #include "leader_greek.dtsi"
 
 
-/* SYS leader layer — N namespace (V+B combo → &leader + N, then letter) */
+/* SYS leader layer — N namespace */
 #ifdef CONFIG_ZMK_BLE
 ZMK_LEADER_SEQUENCE(sys_sel_0,  &bt BT_SEL 0,       N A)  // $$mdi:bluetooth$$1
 ZMK_LEADER_SEQUENCE(sys_sel_1,  &bt BT_SEL 1,       N S)  // $$mdi:bluetooth$$2

@@ -1,4 +1,4 @@
-/* Greek letter sequences — L namespace (H+J combo → &leader + L, then letter) */
+/* Greek letter sequences — L namespace */
 
 #define TOUCAN_GREEK_LEADER_PREFIX L
 
